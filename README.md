@@ -1,6 +1,8 @@
 Bounce-Infinity
 
-### Installation
+Custom ERPNext app for Bounce.
+
+Installation
 
 You can install this app using the [bench](https://github.com/frappe/bench) CLI:
 
