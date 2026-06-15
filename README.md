@@ -1,5 +1,3 @@
-### Bounce-Infinity
-
 Bounce-Infinity
 
 ### Installation
@@ -38,3 +36,7 @@ This app can use GitHub Actions for CI. The following workflows are configured:
 ### License
 
 mit
+=======
+# Bounce-Infinity
+Custom ERPNext app for Bounce
+>>>>>>> 14d51b795da33602cbc31f90a5d909fee7013716
