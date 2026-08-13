@@ -7,14 +7,9 @@ app_license = "mit"
 
 required_apps = ["erpnext"]
 
-doctype_js = {"Warehouse": "public/js/warehouse.js"}
-
 doc_events = {
 	"Purchase Receipt": {
 		"validate": "bounce.bounce_infinity.doctype.incoming_quality_inspection.incoming_quality_inspection.clear_qc_status_for_return"
-	},
-	"Warehouse": {
-		"validate": "bounce.bounce_infinity.doctype.incoming_quality_inspection.incoming_quality_inspection.validate_warehouse_qc_routes"
 	},
 }
 
@@ -34,8 +29,6 @@ fixtures = [
 					"Stock Entry Detail-custom_purchase_receipt_item",
 					"Warehouse-custom_is_qc_accepted_warehouse",
 					"Warehouse-custom_is_qc_rejected_warehouse",
-					"Warehouse-custom_qc_accepted_warehouse",
-					"Warehouse-custom_qc_rejected_warehouse",
 				],
 			]
 		],

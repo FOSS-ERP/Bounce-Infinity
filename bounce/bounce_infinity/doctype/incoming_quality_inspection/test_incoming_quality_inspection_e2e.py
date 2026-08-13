@@ -17,14 +17,18 @@ class TestIncomingQualityInspectionE2E(UnitTestCase):
 		supplier_group = frappe.db.get_value("Supplier Group", {}, "name")
 		supplier = frappe.db.get_value("Supplier", {"supplier_name": "_Test Supplier"}, "name")
 		if not supplier:
-			supplier = frappe.get_doc(
-				{
-					"doctype": "Supplier",
-					"supplier_name": "_Test Supplier",
-					"supplier_group": supplier_group,
-					"supplier_type": "Company",
-				}
-			).insert().name
+			supplier = (
+				frappe.get_doc(
+					{
+						"doctype": "Supplier",
+						"supplier_name": "_Test Supplier",
+						"supplier_group": supplier_group,
+						"supplier_type": "Company",
+					}
+				)
+				.insert()
+				.name
+			)
 		item_a = self._make_item("_Test Incoming QC Item A")
 		item_b = self._make_item("_Test Incoming QC Item B")
 		accepted_warehouse = self._make_warehouse(
@@ -33,13 +37,9 @@ class TestIncomingQualityInspectionE2E(UnitTestCase):
 		rejected_warehouse = self._make_warehouse(
 			"_Test Incoming QC Rejected", {"custom_is_qc_rejected_warehouse": 1}
 		)
-		quality_warehouse = self._make_warehouse(
-			"_Test Incoming QC Quality",
-			{
-				"custom_qc_accepted_warehouse": accepted_warehouse,
-				"custom_qc_rejected_warehouse": rejected_warehouse,
-			},
-		)
+		quality_warehouse = self._make_warehouse("_Test Incoming QC Quality", {})
+		self.accepted_warehouse = accepted_warehouse
+		self.rejected_warehouse = rejected_warehouse
 		initial_qty = {
 			(item_a.name, quality_warehouse): self._actual_qty(item_a.name, quality_warehouse),
 			(item_a.name, accepted_warehouse): self._actual_qty(item_a.name, accepted_warehouse),
@@ -58,7 +58,6 @@ class TestIncomingQualityInspectionE2E(UnitTestCase):
 		created_rows = [row for row in all_rows if row.purchase_receipt in created_names]
 		self.assertEqual(len(created_rows), 3)
 		self.assertEqual(sum(row.pending_qty for row in created_rows), 140)
-		self.assertTrue(all(row.route_configured for row in created_rows))
 
 		item_rows = get_pending_qc_rows(item_code=item_a.name)
 		item_rows = [row for row in item_rows if row.purchase_receipt in created_names]
@@ -89,7 +88,11 @@ class TestIncomingQualityInspectionE2E(UnitTestCase):
 		self.assertTrue(final_qc.accepted_stock_entry)
 		self.assertFalse(final_qc.rejected_stock_entry)
 		self.assertFalse(
-			[row for row in get_pending_qc_rows(item_code=item_a.name) if row.purchase_receipt in created_names]
+			[
+				row
+				for row in get_pending_qc_rows(item_code=item_a.name)
+				if row.purchase_receipt in created_names
+			]
 		)
 
 		for receipt in receipts[:2]:
@@ -157,15 +160,19 @@ class TestIncomingQualityInspectionE2E(UnitTestCase):
 			warehouse.update(properties)
 			warehouse.save()
 			return warehouse.name
-		return frappe.get_doc(
-			{
-				"doctype": "Warehouse",
-				"warehouse_name": warehouse_name,
-				"company": self.company,
-				"parent_warehouse": self.parent_warehouse,
-				**properties,
-			}
-		).insert().name
+		return (
+			frappe.get_doc(
+				{
+					"doctype": "Warehouse",
+					"warehouse_name": warehouse_name,
+					"company": self.company,
+					"parent_warehouse": self.parent_warehouse,
+					**properties,
+				}
+			)
+			.insert()
+			.name
+		)
 
 	def _make_qc(self, rows, quantities, rejection_reason=None):
 		inspection = frappe.get_doc(
@@ -173,6 +180,8 @@ class TestIncomingQualityInspectionE2E(UnitTestCase):
 				"doctype": "Incoming Quality Inspection",
 				"company": rows[0].company,
 				"item_code": rows[0].item_code,
+				"accepted_warehouse": self.accepted_warehouse,
+				"rejected_warehouse": self.rejected_warehouse,
 				"rejection_reason": rejection_reason,
 				"allocations": [
 					{

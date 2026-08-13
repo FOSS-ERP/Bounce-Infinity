@@ -84,11 +84,6 @@ function render_rows($content, rows) {
 				<td class="text-right">${format_number(row.inspected_qty)}</td>
 				<td class="text-right">${format_number(row.pending_qty)}</td>
 				<td>${__(row.qc_status)}</td>
-				<td>${
-					row.route_configured
-						? `<span class="indicator-pill green">${__("Ready")}</span>`
-						: `<span class="indicator-pill orange">${__("Configure Warehouse")}</span>`
-				}</td>
 			</tr>`
 		)
 		.join("");
@@ -97,8 +92,8 @@ function render_rows($content, rows) {
 		"Supplier"
 	)}</th><th>${__("Received On")}</th><th>${__("Quality Warehouse")}</th><th>${__(
 		"Received"
-	)}</th><th>${__("Inspected")}</th><th>${__("Pending")}</th><th>${__("QC Status")}</th><th>${__(
-		"Routing"
+	)}</th><th>${__("Inspected")}</th><th>${__("Pending")}</th><th>${__(
+		"QC Status"
 	)}</th></tr></thead>
 		<tbody>${body}</tbody></table></div></div>`);
 	$content.data("rows", rows);
@@ -118,17 +113,6 @@ function create_incoming_qc(rows) {
 	}
 	if (new Set(selected.map((row) => row.company)).size !== 1) {
 		frappe.msgprint(__("Selected rows must belong to the same Company."));
-		return;
-	}
-	const unconfigured = selected.filter((row) => !row.route_configured);
-	if (unconfigured.length) {
-		frappe.msgprint({
-			title: __("Warehouse Routing Required"),
-			indicator: "orange",
-			message: __("Configure accepted and rejected QC warehouses on: {0}", [
-				[...new Set(unconfigured.map((row) => row.source_warehouse))].join(", "),
-			]),
-		});
 		return;
 	}
 	frappe.new_doc(

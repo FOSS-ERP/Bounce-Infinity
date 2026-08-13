@@ -4,6 +4,24 @@ frappe.ui.form.on("Incoming QC Allocation", {
 });
 
 frappe.ui.form.on("Incoming Quality Inspection", {
+	setup(frm) {
+		frm.set_query("accepted_warehouse", () => ({
+			filters: {
+				company: frm.doc.company,
+				is_group: 0,
+				disabled: 0,
+				custom_is_qc_accepted_warehouse: 1,
+			},
+		}));
+		frm.set_query("rejected_warehouse", () => ({
+			filters: {
+				company: frm.doc.company,
+				is_group: 0,
+				disabled: 0,
+				custom_is_qc_rejected_warehouse: 1,
+			},
+		}));
+	},
 	refresh(frm) {
 		if (frm.doc.docstatus === 0 && (frm.doc.allocations || []).length) {
 			frm.add_custom_button(__("Allocate Total QC Result"), () =>

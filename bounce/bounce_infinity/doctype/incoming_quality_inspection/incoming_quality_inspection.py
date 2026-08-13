@@ -106,10 +106,24 @@ class IncomingQualityInspection(Document):
 
 		self.item_code = items.pop()
 		self.company = companies.pop()
+		self._validate_destination_warehouses()
 		self.total_pending_qty = totals["pending"]
 		self.total_accepted_qty = totals["accepted"]
 		self.total_rejected_qty = totals["rejected"]
 		self.total_remaining_qty = totals["remaining"]
+
+	def _validate_destination_warehouses(self):
+		if self.accepted_warehouse == self.rejected_warehouse:
+			frappe.throw(_("Accepted and rejected warehouses must be different."))
+		_validate_destination_warehouse(
+			self.accepted_warehouse, self.company, "custom_is_qc_accepted_warehouse"
+		)
+		_validate_destination_warehouse(
+			self.rejected_warehouse, self.company, "custom_is_qc_rejected_warehouse"
+		)
+		for allocation in self.allocations:
+			if allocation.source_warehouse in (self.accepted_warehouse, self.rejected_warehouse):
+				frappe.throw(_("QC source and destination warehouses cannot be the same."))
 
 	def _create_stock_entry(self, quantity_field, result):
 		items = []
@@ -117,10 +131,7 @@ class IncomingQualityInspection(Document):
 			qty = flt(allocation.get(quantity_field))
 			if not qty:
 				continue
-			route_field = (
-				"custom_qc_accepted_warehouse" if result == "Accepted" else "custom_qc_rejected_warehouse"
-			)
-			target_warehouse = frappe.db.get_value("Warehouse", allocation.source_warehouse, route_field)
+			target_warehouse = self.accepted_warehouse if result == "Accepted" else self.rejected_warehouse
 			items.append(
 				{
 					"item_code": allocation.item_code,
@@ -184,23 +195,10 @@ def get_pending_qc_rows(
 		SELECT pri.name AS purchase_receipt_item, pri.parent AS purchase_receipt,
 			pri.item_code, pri.warehouse AS source_warehouse,
 			COALESCE(NULLIF(pri.received_qty, 0), pri.qty, 0) AS received_qty,
-			pr.posting_date, pr.supplier, pr.company,
-			CASE WHEN accepted_warehouse.name IS NOT NULL
-				AND accepted_warehouse.disabled = 0 AND accepted_warehouse.is_group = 0
-				AND accepted_warehouse.custom_is_qc_accepted_warehouse = 1
-				AND accepted_warehouse.company = pr.company
-				AND rejected_warehouse.name IS NOT NULL
-				AND rejected_warehouse.disabled = 0 AND rejected_warehouse.is_group = 0
-				AND rejected_warehouse.custom_is_qc_rejected_warehouse = 1
-				AND rejected_warehouse.company = pr.company
-			THEN 1 ELSE 0 END AS route_configured
+			pr.posting_date, pr.supplier, pr.company
 		FROM `tabPurchase Receipt Item` pri
 		INNER JOIN `tabPurchase Receipt` pr ON pr.name = pri.parent
 		INNER JOIN `tabWarehouse` warehouse ON warehouse.name = pri.warehouse
-		LEFT JOIN `tabWarehouse` accepted_warehouse
-			ON accepted_warehouse.name = warehouse.custom_qc_accepted_warehouse
-		LEFT JOIN `tabWarehouse` rejected_warehouse
-			ON rejected_warehouse.name = warehouse.custom_qc_rejected_warehouse
 		WHERE pr.docstatus = 1 AND pr.is_return = 0
 			AND warehouse.disabled = 0 AND warehouse.is_group = 0
 			AND (%s IS NULL OR pri.item_code = %s)
@@ -242,22 +240,6 @@ def clear_qc_status_for_return(doc, method=None):
 		doc.custom_qc_status = ""
 
 
-def validate_warehouse_qc_routes(doc, method=None):
-	accepted_warehouse = doc.get("custom_qc_accepted_warehouse")
-	rejected_warehouse = doc.get("custom_qc_rejected_warehouse")
-	if bool(accepted_warehouse) != bool(rejected_warehouse):
-		frappe.throw(_("Set both accepted and rejected QC warehouses, or leave both empty."))
-	if accepted_warehouse:
-		if doc.is_group or doc.disabled:
-			frappe.throw(_("A disabled or group Warehouse cannot be configured as a QC source."))
-		if doc.name in (accepted_warehouse, rejected_warehouse):
-			frappe.throw(_("QC source and destination warehouses cannot be the same."))
-		if accepted_warehouse == rejected_warehouse:
-			frappe.throw(_("Accepted and rejected QC warehouses must be different."))
-		_validate_destination_warehouse(accepted_warehouse, doc.company, "custom_is_qc_accepted_warehouse")
-		_validate_destination_warehouse(rejected_warehouse, doc.company, "custom_is_qc_rejected_warehouse")
-
-
 def _get_purchase_receipt_item(row_name, lock_row=False):
 	lock_row = lock_row and frappe.db.db_type != "sqlite"
 	if lock_row:
@@ -286,23 +268,11 @@ def _validate_qc_warehouse(source_warehouse, company):
 	warehouse = frappe.db.get_value(
 		"Warehouse",
 		source_warehouse,
-		["company", "is_group", "disabled", "custom_qc_accepted_warehouse", "custom_qc_rejected_warehouse"],
+		["company", "is_group", "disabled"],
 		as_dict=True,
 	)
 	if not warehouse or warehouse.disabled or warehouse.is_group or warehouse.company != company:
 		frappe.throw(_("Warehouse {0} is not a valid QC source warehouse.").format(source_warehouse))
-	if not warehouse.custom_qc_accepted_warehouse or not warehouse.custom_qc_rejected_warehouse:
-		frappe.throw(_("Configure accepted and rejected QC warehouses on {0}.").format(source_warehouse))
-	if source_warehouse in (warehouse.custom_qc_accepted_warehouse, warehouse.custom_qc_rejected_warehouse):
-		frappe.throw(_("QC source and destination warehouses cannot be the same."))
-	if warehouse.custom_qc_accepted_warehouse == warehouse.custom_qc_rejected_warehouse:
-		frappe.throw(_("Accepted and rejected QC warehouses must be different."))
-	_validate_destination_warehouse(
-		warehouse.custom_qc_accepted_warehouse, company, "custom_is_qc_accepted_warehouse"
-	)
-	_validate_destination_warehouse(
-		warehouse.custom_qc_rejected_warehouse, company, "custom_is_qc_rejected_warehouse"
-	)
 
 
 def _validate_destination_warehouse(warehouse_name, company, classification_field):
