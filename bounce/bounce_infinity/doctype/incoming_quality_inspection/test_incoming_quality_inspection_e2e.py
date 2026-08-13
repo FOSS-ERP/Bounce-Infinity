@@ -205,6 +205,8 @@ class TestIncomingQualityInspectionE2E(UnitTestCase):
 	def _ensure_company(self):
 		company = frappe.db.get_value("Company", {}, "name")
 		if not company:
+			if not frappe.db.exists("Warehouse Type", "Transit"):
+				frappe.get_doc({"doctype": "Warehouse Type", "name": "Transit"}).insert()
 			company = (
 				frappe.get_doc(
 					{
