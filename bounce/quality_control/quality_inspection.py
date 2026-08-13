@@ -150,23 +150,27 @@ def _validate_allocation_row(doc, allocation, seen_rows):
 
 
 def _get_inspected_qty(purchase_receipt_item, exclude_quality_inspection=None):
-	conditions = ["qci.purchase_receipt_item = %s", "qi.docstatus = 1"]
-	values = [purchase_receipt_item]
 	if exclude_quality_inspection:
-		conditions.append("qi.name != %s")
-		values.append(exclude_quality_inspection)
-
-	return flt(
-		frappe.db.sql(
-			f"""
+		query = """
 			SELECT COALESCE(SUM(qci.accepted_qty + qci.rejected_qty), 0)
 			FROM `tabQuality Inspection PR Detail` qci
 			INNER JOIN `tabQuality Inspection` qi ON qi.name = qci.parent
-			WHERE {" AND ".join(conditions)}
-			""",
-			values,
-		)[0][0]
-	)
+			WHERE qci.purchase_receipt_item = %s
+				AND qi.docstatus = 1
+				AND qi.name != %s
+		"""
+		values = (purchase_receipt_item, exclude_quality_inspection)
+	else:
+		query = """
+			SELECT COALESCE(SUM(qci.accepted_qty + qci.rejected_qty), 0)
+			FROM `tabQuality Inspection PR Detail` qci
+			INNER JOIN `tabQuality Inspection` qi ON qi.name = qci.parent
+			WHERE qci.purchase_receipt_item = %s
+				AND qi.docstatus = 1
+		"""
+		values = (purchase_receipt_item,)
+
+	return flt(frappe.db.sql(query, values)[0][0])
 
 
 def _get_pending_qty(pr_item, exclude_quality_inspection=None):
