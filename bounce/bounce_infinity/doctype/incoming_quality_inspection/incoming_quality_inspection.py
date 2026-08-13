@@ -244,7 +244,8 @@ def get_purchase_receipt_inspections(purchase_receipt: str):
 
 	return frappe.db.sql(
 		"""
-		SELECT DISTINCT iqc.name, iqc.inspection_date, iqc.item_code, iqc.status, iqc.docstatus
+		SELECT DISTINCT iqc.name, iqc.inspection_date, iqc.item_code, iqc.status, iqc.docstatus,
+			iqc.total_rejected_qty, iqc.rejected_warehouse
 		FROM `tabIncoming Quality Inspection` iqc
 		INNER JOIN `tabIncoming QC Allocation` allocation ON allocation.parent = iqc.name
 		WHERE allocation.purchase_receipt = %s AND iqc.docstatus < 2
@@ -261,10 +262,17 @@ def clear_qc_status_for_return(doc, method=None):
 
 
 def validate_qc_purchase_return(doc, method=None):
-	if not doc.is_return or not doc.custom_incoming_quality_inspection:
+	if not doc.is_return or not doc.return_against:
 		return
-	if not doc.return_against:
-		frappe.throw(_("A QC Purchase Return must reference its original Purchase Receipt."))
+	if not doc.custom_incoming_quality_inspection:
+		if _purchase_receipt_has_rejected_qc(doc.return_against):
+			frappe.throw(
+				_(
+					"This Purchase Receipt has QC-rejected quantity. Create its Purchase Return "
+					"using Create > QC Purchase Return so the rejected warehouse and quantity are enforced."
+				)
+			)
+		return
 
 	for row in doc.items:
 		if not row.custom_incoming_qc_allocation:
@@ -307,7 +315,7 @@ def validate_qc_purchase_return(doc, method=None):
 
 
 @frappe.whitelist()
-def create_qc_purchase_returns(inspection: str):
+def create_qc_purchase_returns(inspection: str, purchase_receipt: str | None = None):
 	from erpnext.stock.doctype.purchase_receipt.purchase_receipt import make_purchase_return
 
 	doc = frappe.get_doc("Incoming Quality Inspection", inspection)
@@ -319,6 +327,8 @@ def create_qc_purchase_returns(inspection: str):
 
 	allocations_by_receipt = {}
 	for allocation in doc.allocations:
+		if purchase_receipt and allocation.purchase_receipt != purchase_receipt:
+			continue
 		remaining = flt(allocation.rejected_qty) - _get_returned_rejected_qty(allocation.name)
 		if remaining > 0:
 			allocations_by_receipt.setdefault(allocation.purchase_receipt, {})[
@@ -343,6 +353,44 @@ def create_qc_purchase_returns(inspection: str):
 		purchase_return.insert()
 		created.append(purchase_return.name)
 	return created
+
+
+@frappe.whitelist()
+def create_qc_purchase_returns_for_receipt(purchase_receipt: str):
+	if not frappe.has_permission("Purchase Receipt", "read", purchase_receipt):
+		frappe.throw(_("You are not permitted to read this Purchase Receipt."), frappe.PermissionError)
+	inspections = frappe.db.sql(
+		"""
+		SELECT DISTINCT iqc.name
+		FROM `tabIncoming Quality Inspection` iqc
+		INNER JOIN `tabIncoming QC Allocation` allocation ON allocation.parent = iqc.name
+		WHERE allocation.purchase_receipt = %s AND iqc.docstatus = 1
+			AND allocation.rejected_qty > 0
+		ORDER BY iqc.creation
+		""",
+		(purchase_receipt,),
+		pluck=True,
+	)
+	created = []
+	for inspection in inspections:
+		created.extend(create_qc_purchase_returns(inspection, purchase_receipt))
+	return created
+
+
+def _purchase_receipt_has_rejected_qc(purchase_receipt):
+	return bool(
+		frappe.db.sql(
+			"""
+			SELECT 1
+			FROM `tabIncoming QC Allocation` allocation
+			INNER JOIN `tabIncoming Quality Inspection` iqc ON iqc.name = allocation.parent
+			WHERE allocation.purchase_receipt = %s AND iqc.docstatus = 1
+				AND allocation.rejected_qty > 0
+			LIMIT 1
+			""",
+			(purchase_receipt,),
+		)
+	)
 
 
 def _get_returned_rejected_qty(allocation, exclude_purchase_return=None):
