@@ -235,9 +235,136 @@ def get_pending_qc_rows(
 	return result
 
 
+@frappe.whitelist()
+def get_purchase_receipt_inspections(purchase_receipt: str):
+	if not purchase_receipt or not frappe.has_permission("Purchase Receipt", "read", purchase_receipt):
+		frappe.throw(_("You are not permitted to read this Purchase Receipt."), frappe.PermissionError)
+	if not frappe.has_permission("Incoming Quality Inspection", "read"):
+		frappe.throw(_("You are not permitted to read Incoming Quality Inspections."), frappe.PermissionError)
+
+	return frappe.db.sql(
+		"""
+		SELECT DISTINCT iqc.name, iqc.inspection_date, iqc.item_code, iqc.status, iqc.docstatus
+		FROM `tabIncoming Quality Inspection` iqc
+		INNER JOIN `tabIncoming QC Allocation` allocation ON allocation.parent = iqc.name
+		WHERE allocation.purchase_receipt = %s AND iqc.docstatus < 2
+		ORDER BY iqc.inspection_date DESC, iqc.creation DESC
+		""",
+		(purchase_receipt,),
+		as_dict=True,
+	)
+
+
 def clear_qc_status_for_return(doc, method=None):
 	if doc.is_return:
 		doc.custom_qc_status = ""
+
+
+def validate_qc_purchase_return(doc, method=None):
+	if not doc.is_return or not doc.custom_incoming_quality_inspection:
+		return
+	if not doc.return_against:
+		frappe.throw(_("A QC Purchase Return must reference its original Purchase Receipt."))
+
+	for row in doc.items:
+		if not row.custom_incoming_qc_allocation:
+			frappe.throw(_("Every QC Purchase Return row must reference an Incoming QC Allocation."))
+		allocation = frappe.db.get_value(
+			"Incoming QC Allocation",
+			row.custom_incoming_qc_allocation,
+			[
+				"parent",
+				"purchase_receipt",
+				"purchase_receipt_item",
+				"rejected_qty",
+			],
+			as_dict=True,
+		)
+		if (
+			not allocation
+			or allocation.parent != doc.custom_incoming_quality_inspection
+			or allocation.purchase_receipt != doc.return_against
+			or allocation.purchase_receipt_item != row.purchase_receipt_item
+		):
+			frappe.throw(_("Row {0}: QC allocation does not match the Purchase Return.").format(row.idx))
+
+		rejected_warehouse = frappe.db.get_value(
+			"Incoming Quality Inspection", allocation.parent, "rejected_warehouse"
+		)
+		if row.warehouse != rejected_warehouse:
+			frappe.throw(
+				_("Row {0}: Warehouse must be the rejected warehouse {1}.").format(
+					row.idx, rejected_warehouse
+				)
+			)
+		already_returned = _get_returned_rejected_qty(
+			row.custom_incoming_qc_allocation, exclude_purchase_return=doc.name
+		)
+		if abs(flt(row.qty)) > flt(allocation.rejected_qty) - already_returned:
+			frappe.throw(
+				_("Row {0}: Return quantity exceeds the remaining rejected quantity.").format(row.idx)
+			)
+
+
+@frappe.whitelist()
+def create_qc_purchase_returns(inspection: str):
+	from erpnext.stock.doctype.purchase_receipt.purchase_receipt import make_purchase_return
+
+	doc = frappe.get_doc("Incoming Quality Inspection", inspection)
+	doc.check_permission("read")
+	if doc.docstatus != 1 or not doc.total_rejected_qty:
+		frappe.throw(_("Submit an Incoming Quality Inspection with rejected quantity first."))
+	if not frappe.has_permission("Purchase Receipt", "create"):
+		frappe.throw(_("You are not permitted to create Purchase Receipts."), frappe.PermissionError)
+
+	allocations_by_receipt = {}
+	for allocation in doc.allocations:
+		remaining = flt(allocation.rejected_qty) - _get_returned_rejected_qty(allocation.name)
+		if remaining > 0:
+			allocations_by_receipt.setdefault(allocation.purchase_receipt, {})[
+				allocation.purchase_receipt_item
+			] = (allocation, remaining)
+
+	created = []
+	for purchase_receipt, allocation_map in allocations_by_receipt.items():
+		purchase_return = make_purchase_return(purchase_receipt)
+		purchase_return.custom_incoming_quality_inspection = doc.name
+		for row in list(purchase_return.items):
+			allocation_data = allocation_map.get(row.purchase_receipt_item)
+			if not allocation_data:
+				purchase_return.remove(row)
+				continue
+			allocation, remaining = allocation_data
+			row.qty = -remaining
+			row.received_qty = -remaining
+			row.stock_qty = -remaining * flt(row.conversion_factor or 1)
+			row.warehouse = doc.rejected_warehouse
+			row.custom_incoming_qc_allocation = allocation.name
+		purchase_return.insert()
+		created.append(purchase_return.name)
+	return created
+
+
+def _get_returned_rejected_qty(allocation, exclude_purchase_return=None):
+	if exclude_purchase_return:
+		query = """
+			SELECT COALESCE(SUM(ABS(pri.qty)), 0)
+			FROM `tabPurchase Receipt Item` pri
+			INNER JOIN `tabPurchase Receipt` pr ON pr.name = pri.parent
+			WHERE pri.custom_incoming_qc_allocation = %s
+				AND pr.is_return = 1 AND pr.docstatus = 1 AND pr.name != %s
+		"""
+		values = (allocation, exclude_purchase_return)
+	else:
+		query = """
+			SELECT COALESCE(SUM(ABS(pri.qty)), 0)
+			FROM `tabPurchase Receipt Item` pri
+			INNER JOIN `tabPurchase Receipt` pr ON pr.name = pri.parent
+			WHERE pri.custom_incoming_qc_allocation = %s
+				AND pr.is_return = 1 AND pr.docstatus = 1
+		"""
+		values = (allocation,)
+	return flt(frappe.db.sql(query, values)[0][0])
 
 
 def _get_purchase_receipt_item(row_name, lock_row=False):
@@ -348,7 +475,18 @@ def _update_purchase_receipt_qc_statuses(allocations):
 		elif inspected_qty < received_qty:
 			status = "Partial QC Done"
 		else:
-			status = "QC Completed"
+			rejected_qty = flt(
+				frappe.db.sql(
+					"""
+					SELECT COALESCE(SUM(qca.rejected_qty), 0)
+					FROM `tabIncoming QC Allocation` qca
+					INNER JOIN `tabIncoming Quality Inspection` iqc ON iqc.name = qca.parent
+					WHERE qca.purchase_receipt = %s AND iqc.docstatus = 1
+					""",
+					(purchase_receipt,),
+				)[0][0]
+			)
+			status = "QC Completed - Partially Rejected" if rejected_qty else "QC Completed - Fully Accepted"
 		frappe.db.set_value(
 			"Purchase Receipt",
 			purchase_receipt,

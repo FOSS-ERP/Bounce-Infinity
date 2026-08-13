@@ -32,7 +32,14 @@ class TestIncomingQualityInspection(UnitTestCase):
 	def test_purchase_receipt_workflow_state_tracks_qc_progress(self):
 		self.assertEqual(_get_purchase_receipt_workflow_state("QC Pending"), "Approved")
 		self.assertEqual(_get_purchase_receipt_workflow_state("Partial QC Done"), "Partial QC Done")
-		self.assertEqual(_get_purchase_receipt_workflow_state("QC Completed"), "QC Completed")
+		self.assertEqual(
+			_get_purchase_receipt_workflow_state("QC Completed - Fully Accepted"),
+			"QC Completed - Fully Accepted",
+		)
+		self.assertEqual(
+			_get_purchase_receipt_workflow_state("QC Completed - Partially Rejected"),
+			"QC Completed - Partially Rejected",
+		)
 
 	def test_return_purchase_receipt_has_no_qc_status(self):
 		return_receipt = SimpleNamespace(is_return=1, custom_qc_status="QC Pending")
