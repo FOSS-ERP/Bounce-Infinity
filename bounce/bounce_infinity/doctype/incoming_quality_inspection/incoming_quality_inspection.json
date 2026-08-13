@@ -1,0 +1,40 @@
+{
+ "actions": [],
+ "allow_rename": 0,
+ "autoname": "naming_series:",
+ "doctype": "DocType",
+ "field_order": ["naming_series","company","inspection_date","inspected_by","item_code","status","allocations_section","allocations","totals_section","total_pending_qty","total_accepted_qty","total_rejected_qty","total_remaining_qty","rejection_reason","remarks","transfers_section","accepted_stock_entry","rejected_stock_entry","amended_from"],
+ "fields": [
+  {"default":"IQC-.YYYY.-.#####","fieldname":"naming_series","fieldtype":"Select","label":"Series","options":"IQC-.YYYY.-.#####","reqd":1},
+  {"fieldname":"company","fieldtype":"Link","label":"Company","options":"Company","reqd":1},
+  {"default":"Today","fieldname":"inspection_date","fieldtype":"Date","label":"Inspection Date","reqd":1},
+  {"default":"__user","fieldname":"inspected_by","fieldtype":"Link","label":"Inspected By","options":"User","reqd":1},
+  {"fieldname":"item_code","fieldtype":"Link","in_standard_filter":1,"label":"Item","options":"Item","read_only":1,"reqd":1},
+  {"fieldname":"status","fieldtype":"Select","in_list_view":1,"label":"Status","options":"Draft\nSubmitted\nCancelled","read_only":1},
+  {"fieldname":"allocations_section","fieldtype":"Section Break","label":"Selected Purchase Receipts"},
+  {"fieldname":"allocations","fieldtype":"Table","label":"GRN Allocations","options":"Incoming QC Allocation","reqd":1},
+  {"fieldname":"totals_section","fieldtype":"Section Break","label":"QC Result"},
+  {"fieldname":"total_pending_qty","fieldtype":"Float","label":"Total Pending Qty","read_only":1},
+  {"fieldname":"total_accepted_qty","fieldtype":"Float","label":"Total Accepted Qty","read_only":1},
+  {"fieldname":"total_rejected_qty","fieldtype":"Float","label":"Total Rejected Qty","read_only":1},
+  {"fieldname":"total_remaining_qty","fieldtype":"Float","label":"Total Remaining Qty","read_only":1},
+  {"depends_on":"eval:doc.total_rejected_qty > 0","fieldname":"rejection_reason","fieldtype":"Small Text","label":"Rejection Reason","mandatory_depends_on":"eval:doc.total_rejected_qty > 0"},
+  {"fieldname":"remarks","fieldtype":"Small Text","label":"Remarks"},
+  {"fieldname":"transfers_section","fieldtype":"Section Break","label":"Stock Transfers"},
+  {"fieldname":"accepted_stock_entry","fieldtype":"Link","label":"Accepted Stock Entry","no_copy":1,"options":"Stock Entry","read_only":1},
+  {"fieldname":"rejected_stock_entry","fieldtype":"Link","label":"Rejected Stock Entry","no_copy":1,"options":"Stock Entry","read_only":1},
+  {"fieldname":"amended_from","fieldtype":"Link","label":"Amended From","no_copy":1,"options":"Incoming Quality Inspection","print_hide":1,"read_only":1}
+ ],
+ "is_submittable":1,
+ "links":[],
+ "module":"Bounce-Infinity",
+ "name":"Incoming Quality Inspection",
+ "permissions":[
+  {"create":1,"delete":1,"email":1,"print":1,"read":1,"report":1,"role":"Quality Manager","share":1,"submit":1,"write":1},
+  {"create":1,"email":1,"print":1,"read":1,"report":1,"role":"Stock User","share":1,"submit":1,"write":1}
+ ],
+ "search_fields":"item_code,company",
+ "sort_field":"modified",
+ "sort_order":"DESC",
+ "states":[]
+}

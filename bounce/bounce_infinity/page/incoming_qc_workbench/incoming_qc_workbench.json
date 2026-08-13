@@ -1,0 +1,17 @@
+{
+ "content": null,
+ "doctype": "Page",
+ "icon": "quality",
+ "module": "Bounce-Infinity",
+ "name": "incoming-qc-workbench",
+ "page_name": "incoming-qc-workbench",
+ "roles": [
+  {"role":"Quality Manager"},
+  {"role":"Stock User"}
+ ],
+ "script": null,
+ "standard": "Yes",
+ "style": null,
+ "system_page": 0,
+ "title": "Incoming QC Workbench"
+}

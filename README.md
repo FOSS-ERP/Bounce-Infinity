@@ -2,25 +2,27 @@ Bounce-Infinity
 
 Custom ERPNext app for Bounce.
 
-## GRN QC allocation
+## Incoming QC workflow
 
-The app extends **Quality Inspection** with a row-level, partial QC allocation flow for submitted
-Purchase Receipts. Select **QC Item**, click **Get GRN for QC**, and enter accepted/rejected quantities
-against one or more pending Purchase Receipt rows. Only submitted Quality Inspections consume the
-pending quantity; cancelled and draft inspections do not.
+The **Incoming QC Workbench** (`/app/incoming-qc-workbench`) lists submitted Purchase Receipt Item rows
+that still have pending QC quantity. QC users can filter by Item, Purchase Receipt, Supplier, or receipt
+date, select multiple rows for the same Item, and create an **Incoming Quality Inspection**.
 
-The server validates every allocation against its exact `Purchase Receipt Item`, recalculates pending
-quantities from submitted inspections, and locks the source row while submitting to prevent concurrent
-over-allocation.
+The inspection records accepted and rejected quantities against the exact Purchase Receipt Item rows.
+Rejection Reason is mandatory when any quantity is rejected. Submitted inspections automatically create
+accepted and rejected Material Transfer Stock Entries, maintain row-level links back to the Purchase
+Receipt and QC allocation, and update each Purchase Receipt to **QC Pending**, **Partial QC Done**, or
+**QC Completed**.
 
-Before submitting the first QC allocation, open **Bounce QC Settings** and select the accepted-material
-and rejected-material destination warehouses. The submitting QC user must have permission to create and
-submit Material Transfer Stock Entries. Accepted and rejected transfers are linked back to the Quality
-Inspection and are cancelled automatically if the inspection is cancelled.
+Configure routing on each Quality Warehouse:
 
-Submitted Purchase Receipts carry an automatic QC Status: **QC Pending**, **Partial QC Done**, or
-**QC Completed**. A Purchase Receipt Item stops appearing in the QC picker only when its full received
-quantity has been inspected. Rejection Reason is mandatory whenever rejected quantity is greater than zero.
+1. Mark destination warehouses as **Is QC Accepted Warehouse** or **Is QC Rejected Warehouse**.
+2. On the Quality Warehouse, select its **QC Accepted Material Warehouse** and **QC Rejected Material Warehouse**.
+3. Ensure QC users can create and submit Material Transfer Stock Entries.
+
+Only classified destinations from the same company are selectable. Cancelling an Incoming Quality
+Inspection cancels its generated Stock Entries and reopens the affected quantities. The app does not
+modify the standard ERPNext Quality Inspection form.
 
 Installation
 

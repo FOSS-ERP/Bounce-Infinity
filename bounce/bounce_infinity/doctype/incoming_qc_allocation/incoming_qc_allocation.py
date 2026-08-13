@@ -1,5 +1,5 @@
 from frappe.model.document import Document
 
 
-class BounceQCSettings(Document):
+class IncomingQCAllocation(Document):
 	pass
