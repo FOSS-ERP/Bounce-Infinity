@@ -1,6 +1,7 @@
 import frappe
 from frappe.model.workflow import apply_workflow
 from frappe.tests import UnitTestCase
+from frappe.utils import getdate, today
 
 from bounce.bounce_infinity.doctype.incoming_quality_inspection.incoming_quality_inspection import (
 	get_pending_qc_rows,
@@ -10,11 +11,24 @@ from bounce.bounce_infinity.doctype.incoming_quality_inspection.incoming_quality
 class TestIncomingQualityInspectionE2E(UnitTestCase):
 	def test_multiple_grns_workbench_qc_and_stock_transfers(self):
 		self._ensure_item_master_data()
-		self.company = frappe.db.get_value("Company", {}, "name")
+		self.company = self._ensure_company()
 		self.company_abbr = frappe.db.get_value("Company", self.company, "abbr")
 		self.parent_warehouse = frappe.db.get_value(
 			"Warehouse", {"company": self.company, "is_group": 1}, "name"
 		)
+		if not self.parent_warehouse:
+			self.parent_warehouse = (
+				frappe.get_doc(
+					{
+						"doctype": "Warehouse",
+						"warehouse_name": "All Warehouses",
+						"company": self.company,
+						"is_group": 1,
+					}
+				)
+				.insert()
+				.name
+			)
 		supplier_group = frappe.db.get_value("Supplier Group", {}, "name")
 		supplier = frappe.db.get_value("Supplier", {"supplier_name": "_Test Supplier"}, "name")
 		if not supplier:
@@ -187,6 +201,45 @@ class TestIncomingQualityInspectionE2E(UnitTestCase):
 			.insert()
 			.name
 		)
+
+	def _ensure_company(self):
+		company = frappe.db.get_value("Company", {}, "name")
+		if not company:
+			company = (
+				frappe.get_doc(
+					{
+						"doctype": "Company",
+						"company_name": "_Test Incoming QC Company",
+						"abbr": "IQC",
+						"country": "India",
+						"default_currency": "INR",
+						"create_chart_of_accounts_based_on": "Standard Template",
+						"chart_of_accounts": "Standard",
+					}
+				)
+				.insert()
+				.name
+			)
+
+		posting_date = getdate(today())
+		fiscal_year = frappe.db.get_value(
+			"Fiscal Year",
+			{
+				"year_start_date": ["<=", posting_date],
+				"year_end_date": [">=", posting_date],
+			},
+			"name",
+		)
+		if not fiscal_year:
+			frappe.get_doc(
+				{
+					"doctype": "Fiscal Year",
+					"year": f"_Test Incoming QC FY {posting_date.year}",
+					"year_start_date": posting_date.replace(month=1, day=1),
+					"year_end_date": posting_date.replace(month=12, day=31),
+				}
+			).insert()
+		return company
 
 	def _make_warehouse(self, warehouse_name, properties):
 		name = f"{warehouse_name} - {self.company_abbr}"
