@@ -9,6 +9,7 @@ from bounce.bounce_infinity.doctype.incoming_quality_inspection.incoming_quality
 
 class TestIncomingQualityInspectionE2E(UnitTestCase):
 	def test_multiple_grns_workbench_qc_and_stock_transfers(self):
+		self._ensure_item_master_data()
 		self.company = frappe.db.get_value("Company", {}, "name")
 		self.company_abbr = frappe.db.get_value("Company", self.company, "abbr")
 		self.parent_warehouse = frappe.db.get_value(
@@ -147,11 +148,45 @@ class TestIncomingQualityInspectionE2E(UnitTestCase):
 				"doctype": "Item",
 				"item_code": item_code,
 				"item_name": item_code,
-				"item_group": frappe.db.get_value("Item Group", {"is_group": 0}, "name"),
+				"item_group": self.item_group,
 				"stock_uom": "Nos",
 				"is_stock_item": 1,
 			}
 		).insert()
+
+	def _ensure_item_master_data(self):
+		if not frappe.db.exists("UOM", "Nos"):
+			frappe.get_doc({"doctype": "UOM", "uom_name": "Nos", "must_be_whole_number": 1}).insert()
+
+		self.item_group = frappe.db.get_value("Item Group", {"is_group": 0}, "name")
+		if self.item_group:
+			return
+
+		parent_item_group = frappe.db.get_value("Item Group", {"is_group": 1}, "name")
+		if not parent_item_group:
+			parent_item_group = (
+				frappe.get_doc(
+					{
+						"doctype": "Item Group",
+						"item_group_name": "All Item Groups",
+						"is_group": 1,
+					}
+				)
+				.insert()
+				.name
+			)
+		self.item_group = (
+			frappe.get_doc(
+				{
+					"doctype": "Item Group",
+					"item_group_name": "_Test Incoming QC Items",
+					"parent_item_group": parent_item_group,
+					"is_group": 0,
+				}
+			)
+			.insert()
+			.name
+		)
 
 	def _make_warehouse(self, warehouse_name, properties):
 		name = f"{warehouse_name} - {self.company_abbr}"
