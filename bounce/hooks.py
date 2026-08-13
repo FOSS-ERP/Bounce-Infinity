@@ -7,16 +7,11 @@ app_license = "mit"
 
 required_apps = ["erpnext"]
 
-doctype_js = {
-	"Quality Inspection": "public/js/quality_inspection.js",
-}
+doctype_js = {"Warehouse": "public/js/warehouse.js"}
 
 doc_events = {
-	"Quality Inspection": {
-		"validate": "bounce.quality_control.quality_inspection.validate_qc_allocations",
-		"before_submit": "bounce.quality_control.quality_inspection.validate_qc_allocations_for_submit",
-		"on_submit": "bounce.quality_control.quality_inspection.process_qc_result",
-		"on_cancel": "bounce.quality_control.quality_inspection.reverse_qc_result",
+	"Warehouse": {
+		"validate": "bounce.bounce_infinity.doctype.incoming_quality_inspection.incoming_quality_inspection.validate_warehouse_qc_routes"
 	}
 }
 
@@ -29,10 +24,15 @@ fixtures = [
 				"in",
 				[
 					"Purchase Receipt-custom_qc_status",
-					"Quality Inspection-custom_accepted_stock_entry",
-					"Quality Inspection-custom_qc_item",
-					"Quality Inspection-custom_qc_receipts",
-					"Quality Inspection-custom_rejected_stock_entry",
+					"Stock Entry-custom_incoming_quality_inspection",
+					"Stock Entry-custom_qc_result",
+					"Stock Entry Detail-custom_incoming_qc_allocation",
+					"Stock Entry Detail-custom_purchase_receipt",
+					"Stock Entry Detail-custom_purchase_receipt_item",
+					"Warehouse-custom_is_qc_accepted_warehouse",
+					"Warehouse-custom_is_qc_rejected_warehouse",
+					"Warehouse-custom_qc_accepted_warehouse",
+					"Warehouse-custom_qc_rejected_warehouse",
 				],
 			]
 		],

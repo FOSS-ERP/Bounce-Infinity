@@ -1,60 +1,12 @@
 [
- {
-  "doctype": "Custom Field",
-  "name": "Purchase Receipt-custom_qc_status",
-  "dt": "Purchase Receipt",
-  "fieldname": "custom_qc_status",
-  "fieldtype": "Select",
-  "label": "QC Status",
-  "options": "QC Pending\nPartial QC Done\nQC Completed",
-  "default": "QC Pending",
-  "read_only": 1,
-  "allow_on_submit": 1,
-  "in_list_view": 1,
-  "insert_after": "workflow_state"
- },
- {
-  "doctype": "Custom Field",
-  "name": "Quality Inspection-custom_qc_item",
-  "dt": "Quality Inspection",
-  "fieldname": "custom_qc_item",
-  "fieldtype": "Link",
-  "label": "QC Item",
-  "options": "Item",
-  "insert_after": "item_code"
- },
- {
-  "doctype": "Custom Field",
-  "name": "Quality Inspection-custom_qc_receipts",
-  "dt": "Quality Inspection",
-  "fieldname": "custom_qc_receipts",
-  "fieldtype": "Table",
-  "label": "GRN for QC",
-  "options": "Quality Inspection PR Detail",
-  "insert_after": "custom_qc_item"
- },
- {
-  "doctype": "Custom Field",
-  "name": "Quality Inspection-custom_accepted_stock_entry",
-  "dt": "Quality Inspection",
-  "fieldname": "custom_accepted_stock_entry",
-  "fieldtype": "Link",
-  "label": "Accepted Stock Entry",
-  "options": "Stock Entry",
-  "read_only": 1,
-  "no_copy": 1,
-  "insert_after": "custom_qc_receipts"
- },
- {
-  "doctype": "Custom Field",
-  "name": "Quality Inspection-custom_rejected_stock_entry",
-  "dt": "Quality Inspection",
-  "fieldname": "custom_rejected_stock_entry",
-  "fieldtype": "Link",
-  "label": "Rejected Stock Entry",
-  "options": "Stock Entry",
-  "read_only": 1,
-  "no_copy": 1,
-  "insert_after": "custom_accepted_stock_entry"
- }
+ {"doctype":"Custom Field","name":"Purchase Receipt-custom_qc_status","dt":"Purchase Receipt","fieldname":"custom_qc_status","fieldtype":"Select","label":"QC Status","options":"QC Pending\nPartial QC Done\nQC Completed","default":"QC Pending","read_only":1,"allow_on_submit":1,"in_list_view":1,"insert_after":"workflow_state"},
+ {"doctype":"Custom Field","name":"Warehouse-custom_is_qc_accepted_warehouse","dt":"Warehouse","fieldname":"custom_is_qc_accepted_warehouse","fieldtype":"Check","label":"Is QC Accepted Warehouse","insert_after":"disabled"},
+ {"doctype":"Custom Field","name":"Warehouse-custom_is_qc_rejected_warehouse","dt":"Warehouse","fieldname":"custom_is_qc_rejected_warehouse","fieldtype":"Check","label":"Is QC Rejected Warehouse","insert_after":"custom_is_qc_accepted_warehouse"},
+ {"doctype":"Custom Field","name":"Warehouse-custom_qc_accepted_warehouse","dt":"Warehouse","fieldname":"custom_qc_accepted_warehouse","fieldtype":"Link","label":"QC Accepted Material Warehouse","options":"Warehouse","insert_after":"custom_is_qc_rejected_warehouse"},
+ {"doctype":"Custom Field","name":"Warehouse-custom_qc_rejected_warehouse","dt":"Warehouse","fieldname":"custom_qc_rejected_warehouse","fieldtype":"Link","label":"QC Rejected Material Warehouse","options":"Warehouse","insert_after":"custom_qc_accepted_warehouse"},
+ {"doctype":"Custom Field","name":"Stock Entry-custom_incoming_quality_inspection","dt":"Stock Entry","fieldname":"custom_incoming_quality_inspection","fieldtype":"Link","label":"Incoming Quality Inspection","options":"Incoming Quality Inspection","read_only":1,"no_copy":1,"insert_after":"stock_entry_type"},
+ {"doctype":"Custom Field","name":"Stock Entry-custom_qc_result","dt":"Stock Entry","fieldname":"custom_qc_result","fieldtype":"Select","label":"QC Result","options":"Accepted\nRejected","read_only":1,"no_copy":1,"insert_after":"custom_incoming_quality_inspection"},
+ {"doctype":"Custom Field","name":"Stock Entry Detail-custom_purchase_receipt","dt":"Stock Entry Detail","fieldname":"custom_purchase_receipt","fieldtype":"Link","label":"Purchase Receipt","options":"Purchase Receipt","read_only":1,"no_copy":1,"insert_after":"t_warehouse"},
+ {"doctype":"Custom Field","name":"Stock Entry Detail-custom_purchase_receipt_item","dt":"Stock Entry Detail","fieldname":"custom_purchase_receipt_item","fieldtype":"Data","label":"Purchase Receipt Item","read_only":1,"no_copy":1,"insert_after":"custom_purchase_receipt"},
+ {"doctype":"Custom Field","name":"Stock Entry Detail-custom_incoming_qc_allocation","dt":"Stock Entry Detail","fieldname":"custom_incoming_qc_allocation","fieldtype":"Data","label":"Incoming QC Allocation","read_only":1,"no_copy":1,"insert_after":"custom_purchase_receipt_item"}
 ]
