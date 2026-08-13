@@ -10,9 +10,12 @@ required_apps = ["erpnext"]
 doctype_js = {"Warehouse": "public/js/warehouse.js"}
 
 doc_events = {
+	"Purchase Receipt": {
+		"validate": "bounce.bounce_infinity.doctype.incoming_quality_inspection.incoming_quality_inspection.clear_qc_status_for_return"
+	},
 	"Warehouse": {
 		"validate": "bounce.bounce_infinity.doctype.incoming_quality_inspection.incoming_quality_inspection.validate_warehouse_qc_routes"
-	}
+	},
 }
 
 fixtures = [

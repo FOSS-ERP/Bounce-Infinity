@@ -1,6 +1,5 @@
 import frappe
 
-
 WORKFLOW_NAME = "Purchase Receipt"
 
 
@@ -26,6 +25,7 @@ def execute():
 			{"state": "Approved", "doc_status": "1", "allow_edit": "Quality Manager"},
 			{"state": "Partial QC Done", "doc_status": "1", "allow_edit": "Quality Manager"},
 			{"state": "QC Completed", "doc_status": "1", "allow_edit": "Quality Manager"},
+			{"state": "Return Submitted", "doc_status": "1", "allow_edit": "Stock User"},
 		],
 	)
 	workflow.set(
@@ -37,7 +37,16 @@ def execute():
 				"next_state": "Approved",
 				"allowed": "Stock User",
 				"allow_self_approval": 1,
-			}
+				"condition": "not doc.is_return",
+			},
+			{
+				"state": "Draft",
+				"action": "Submit Return",
+				"next_state": "Return Submitted",
+				"allowed": "Stock User",
+				"allow_self_approval": 1,
+				"condition": "doc.is_return",
+			},
 		],
 	)
 	workflow.save(ignore_permissions=True)
@@ -45,11 +54,13 @@ def execute():
 	frappe.db.sql(
 		"""
 		UPDATE `tabPurchase Receipt`
-		SET workflow_state = CASE custom_qc_status
-			WHEN 'Partial QC Done' THEN 'Partial QC Done'
-			WHEN 'QC Completed' THEN 'QC Completed'
+		SET workflow_state = CASE
+			WHEN is_return = 1 THEN 'Return Submitted'
+			WHEN custom_qc_status = 'Partial QC Done' THEN 'Partial QC Done'
+			WHEN custom_qc_status = 'QC Completed' THEN 'QC Completed'
 			ELSE 'Approved'
-		END
+		END,
+		custom_qc_status = CASE WHEN is_return = 1 THEN '' ELSE custom_qc_status END
 		WHERE docstatus = 1
 		"""
 	)
@@ -61,6 +72,7 @@ def _create_workflow_masters():
 		("Approved", "Warning"),
 		("Partial QC Done", "Warning"),
 		("QC Completed", "Success"),
+		("Return Submitted", "Success"),
 	):
 		if not frappe.db.exists("Workflow State", state):
 			frappe.get_doc(
@@ -68,6 +80,11 @@ def _create_workflow_masters():
 			).insert(ignore_permissions=True)
 
 	if not frappe.db.exists("Workflow Action Master", "Approve"):
-		frappe.get_doc(
-			{"doctype": "Workflow Action Master", "workflow_action_name": "Approve"}
-		).insert(ignore_permissions=True)
+		frappe.get_doc({"doctype": "Workflow Action Master", "workflow_action_name": "Approve"}).insert(
+			ignore_permissions=True
+		)
+
+	if not frappe.db.exists("Workflow Action Master", "Submit Return"):
+		frappe.get_doc({"doctype": "Workflow Action Master", "workflow_action_name": "Submit Return"}).insert(
+			ignore_permissions=True
+		)

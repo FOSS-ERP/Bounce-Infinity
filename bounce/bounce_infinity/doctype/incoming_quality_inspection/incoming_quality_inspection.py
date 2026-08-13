@@ -234,6 +234,11 @@ def get_pending_qc_rows(
 	return result
 
 
+def clear_qc_status_for_return(doc, method=None):
+	if doc.is_return:
+		doc.custom_qc_status = ""
+
+
 def validate_warehouse_qc_routes(doc, method=None):
 	accepted_warehouse = doc.get("custom_qc_accepted_warehouse")
 	rejected_warehouse = doc.get("custom_qc_rejected_warehouse")
