@@ -259,6 +259,7 @@ def validate_warehouse_qc_routes(doc, method=None):
 
 
 def _get_purchase_receipt_item(row_name, lock_row=False):
+	lock_row = lock_row and frappe.db.db_type != "sqlite"
 	if lock_row:
 		query = """
 			SELECT pri.name, pri.parent, pri.item_code, pri.warehouse, pri.docstatus,
