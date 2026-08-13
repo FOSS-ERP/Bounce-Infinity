@@ -35,7 +35,9 @@ def validate_qc_allocations_for_submit(doc, method=None):
 			as_dict=True,
 		)
 		if not purchase_receipt_item:
-			frappe.throw(_("Purchase Receipt row {0} no longer exists.").format(allocation.purchase_receipt_item))
+			frappe.throw(
+				_("Purchase Receipt row {0} no longer exists.").format(allocation.purchase_receipt_item)
+			)
 
 		pr_item = purchase_receipt_item[0]
 		pending_qty = _get_pending_qty(pr_item, exclude_quality_inspection=doc.name)
@@ -101,7 +103,9 @@ def _validate_allocation_row(doc, allocation, seen_rows):
 	if not allocation.purchase_receipt_item:
 		frappe.throw(_("Row {0}: Purchase Receipt Item is required.").format(allocation.idx))
 	if allocation.purchase_receipt_item in seen_rows:
-		frappe.throw(_("Row {0}: the same Purchase Receipt row cannot be allocated twice.").format(allocation.idx))
+		frappe.throw(
+			_("Row {0}: the same Purchase Receipt row cannot be allocated twice.").format(allocation.idx)
+		)
 	seen_rows.add(allocation.purchase_receipt_item)
 
 	pr_item = frappe.db.get_value(
@@ -113,14 +117,20 @@ def _validate_allocation_row(doc, allocation, seen_rows):
 	if not pr_item or pr_item.docstatus != 1:
 		frappe.throw(_("Row {0}: Purchase Receipt must be submitted.").format(allocation.idx))
 	if pr_item.parent != allocation.purchase_receipt or pr_item.item_code != doc.custom_qc_item:
-		frappe.throw(_("Row {0}: Purchase Receipt row does not match the selected Item.").format(allocation.idx))
+		frappe.throw(
+			_("Row {0}: Purchase Receipt row does not match the selected Item.").format(allocation.idx)
+		)
 
 	accepted_qty = flt(allocation.accepted_qty)
 	rejected_qty = flt(allocation.rejected_qty)
 	if accepted_qty < 0 or rejected_qty < 0:
-		frappe.throw(_("Row {0}: accepted and rejected quantities cannot be negative.").format(allocation.idx))
+		frappe.throw(
+			_("Row {0}: accepted and rejected quantities cannot be negative.").format(allocation.idx)
+		)
 	if doc.get("_action") == "submit" and accepted_qty + rejected_qty <= 0:
-		frappe.throw(_("Row {0}: enter an accepted or rejected quantity before submitting.").format(allocation.idx))
+		frappe.throw(
+			_("Row {0}: enter an accepted or rejected quantity before submitting.").format(allocation.idx)
+		)
 
 	received_qty = flt(pr_item.received_qty) or flt(pr_item.qty)
 	inspected_qty = _get_inspected_qty(pr_item.name, doc.name)
@@ -152,7 +162,7 @@ def _get_inspected_qty(purchase_receipt_item, exclude_quality_inspection=None):
 			SELECT COALESCE(SUM(qci.accepted_qty + qci.rejected_qty), 0)
 			FROM `tabQuality Inspection PR Detail` qci
 			INNER JOIN `tabQuality Inspection` qi ON qi.name = qci.parent
-			WHERE {' AND '.join(conditions)}
+			WHERE {" AND ".join(conditions)}
 			""",
 			values,
 		)[0][0]

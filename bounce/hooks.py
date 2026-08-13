@@ -21,7 +21,9 @@ doc_events = {
 fixtures = [
 	{
 		"dt": "Custom Field",
-		"filters": [["name", "in", ["Quality Inspection-custom_qc_item", "Quality Inspection-custom_qc_receipts"]]],
+		"filters": [
+			["name", "in", ["Quality Inspection-custom_qc_item", "Quality Inspection-custom_qc_receipts"]]
+		],
 	},
 ]
 
