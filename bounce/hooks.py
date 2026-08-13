@@ -13,7 +13,10 @@ doctype_js = {"Purchase Receipt": "public/js/purchase_receipt.js"}
 
 doc_events = {
 	"Purchase Receipt": {
-		"validate": "bounce.bounce_infinity.doctype.incoming_quality_inspection.incoming_quality_inspection.clear_qc_status_for_return"
+		"validate": [
+			"bounce.bounce_infinity.doctype.incoming_quality_inspection.incoming_quality_inspection.clear_qc_status_for_return",
+			"bounce.bounce_infinity.doctype.incoming_quality_inspection.incoming_quality_inspection.validate_qc_purchase_return",
+		]
 	},
 }
 
@@ -26,6 +29,8 @@ fixtures = [
 				"in",
 				[
 					"Purchase Receipt-custom_qc_status",
+					"Purchase Receipt-custom_incoming_quality_inspection",
+					"Purchase Receipt Item-custom_incoming_qc_allocation",
 					"Stock Entry-custom_incoming_quality_inspection",
 					"Stock Entry-custom_qc_result",
 					"Stock Entry Detail-custom_incoming_qc_allocation",

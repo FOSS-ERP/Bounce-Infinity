@@ -1,9 +1,10 @@
 import frappe
 from frappe.model.workflow import apply_workflow
 from frappe.tests import UnitTestCase
-from frappe.utils import getdate, today
+from frappe.utils import flt, getdate, today
 
 from bounce.bounce_infinity.doctype.incoming_quality_inspection.incoming_quality_inspection import (
+	create_qc_purchase_returns,
 	get_pending_qc_rows,
 	get_purchase_receipt_inspections,
 )
@@ -62,6 +63,7 @@ class TestIncomingQualityInspectionE2E(UnitTestCase):
 			(item_a.name, accepted_warehouse): self._actual_qty(item_a.name, accepted_warehouse),
 			(item_a.name, rejected_warehouse): self._actual_qty(item_a.name, rejected_warehouse),
 			(item_b.name, quality_warehouse): self._actual_qty(item_b.name, quality_warehouse),
+			(item_b.name, accepted_warehouse): self._actual_qty(item_b.name, accepted_warehouse),
 		}
 
 		receipts = [
@@ -116,7 +118,42 @@ class TestIncomingQualityInspectionE2E(UnitTestCase):
 			status, workflow_state = frappe.db.get_value(
 				"Purchase Receipt", receipt.name, ["custom_qc_status", "workflow_state"]
 			)
-			self.assertEqual((status, workflow_state), ("QC Completed", "QC Completed"))
+			self.assertEqual(
+				(status, workflow_state),
+				("QC Completed - Partially Rejected", "QC Completed - Partially Rejected"),
+			)
+
+		purchase_returns = create_qc_purchase_returns(partial_qc.name)
+		self.assertEqual(len(purchase_returns), 2)
+		for index, purchase_return_name in enumerate(purchase_returns):
+			purchase_return = frappe.get_doc("Purchase Receipt", purchase_return_name)
+			self.assertTrue(all(row.warehouse == rejected_warehouse for row in purchase_return.items))
+			allocation = frappe.get_doc(
+				"Incoming QC Allocation", purchase_return.items[0].custom_incoming_qc_allocation
+			)
+			purchase_return.items[0].qty = -(allocation.rejected_qty + 1)
+			with self.assertRaises(frappe.ValidationError):
+				purchase_return.save()
+			purchase_return.reload()
+			if index == 0:
+				partial_return_qty = max(flt(allocation.rejected_qty) - 2, 1)
+				purchase_return.items[0].qty = -partial_return_qty
+				purchase_return.items[0].received_qty = -partial_return_qty
+				purchase_return.save()
+			apply_workflow(purchase_return, "Submit Return")
+		remaining_returns = create_qc_purchase_returns(partial_qc.name)
+		self.assertEqual(len(remaining_returns), 1)
+		apply_workflow(frappe.get_doc("Purchase Receipt", remaining_returns[0]), "Submit Return")
+		self.assertFalse(create_qc_purchase_returns(partial_qc.name))
+
+		item_b_rows = [
+			row for row in get_pending_qc_rows(item_code=item_b.name) if row.purchase_receipt in created_names
+		]
+		self._make_qc(item_b_rows, ((40, 0),))
+		self.assertEqual(
+			frappe.db.get_value("Purchase Receipt", receipts[2].name, ["custom_qc_status", "workflow_state"]),
+			("QC Completed - Fully Accepted", "QC Completed - Fully Accepted"),
+		)
 
 		related_inspections = get_purchase_receipt_inspections(receipts[0].name)
 		self.assertEqual(
@@ -133,11 +170,15 @@ class TestIncomingQualityInspectionE2E(UnitTestCase):
 		)
 		self.assertEqual(
 			self._actual_qty(item_a.name, rejected_warehouse),
-			initial_qty[item_a.name, rejected_warehouse] + 15,
+			initial_qty[item_a.name, rejected_warehouse],
 		)
 		self.assertEqual(
 			self._actual_qty(item_b.name, quality_warehouse),
-			initial_qty[item_b.name, quality_warehouse] + 40,
+			initial_qty[item_b.name, quality_warehouse],
+		)
+		self.assertEqual(
+			self._actual_qty(item_b.name, accepted_warehouse),
+			initial_qty[item_b.name, accepted_warehouse] + 40,
 		)
 
 	def _make_receipt(self, item_code, qty, warehouse, supplier):

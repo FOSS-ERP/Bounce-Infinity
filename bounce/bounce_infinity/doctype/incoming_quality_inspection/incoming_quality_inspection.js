@@ -22,6 +22,30 @@ frappe.ui.form.on("Incoming Quality Inspection", {
 			},
 		}));
 	},
+	refresh(frm) {
+		if (frm.doc.docstatus === 1 && flt(frm.doc.total_rejected_qty) > 0) {
+			frm.add_custom_button(
+				__("Create Purchase Return"),
+				async () => {
+					const response = await frappe.call({
+						method: "bounce.bounce_infinity.doctype.incoming_quality_inspection.incoming_quality_inspection.create_qc_purchase_returns",
+						args: { inspection: frm.doc.name },
+						freeze: true,
+						freeze_message: __("Creating Purchase Return..."),
+					});
+					const returns = response.message || [];
+					if (!returns.length) {
+						frappe.msgprint(__("All rejected quantities have already been returned."));
+					} else if (returns.length === 1) {
+						frappe.set_route("Form", "Purchase Receipt", returns[0]);
+					} else {
+						frappe.msgprint(__("Created Purchase Returns: {0}", [returns.join(", ")]));
+					}
+				},
+				__("Create")
+			);
+		}
+	},
 });
 
 function calculate_totals(frm, cdt, cdn) {

@@ -24,7 +24,12 @@ def execute():
 			{"state": "Draft", "doc_status": "0", "allow_edit": "Stock User"},
 			{"state": "Approved", "doc_status": "1", "allow_edit": "Quality Manager"},
 			{"state": "Partial QC Done", "doc_status": "1", "allow_edit": "Quality Manager"},
-			{"state": "QC Completed", "doc_status": "1", "allow_edit": "Quality Manager"},
+			{"state": "QC Completed - Fully Accepted", "doc_status": "1", "allow_edit": "Quality Manager"},
+			{
+				"state": "QC Completed - Partially Rejected",
+				"doc_status": "1",
+				"allow_edit": "Quality Manager",
+			},
 			{"state": "Return Submitted", "doc_status": "1", "allow_edit": "Stock User"},
 		],
 	)
@@ -63,10 +68,32 @@ def execute():
 		SET workflow_state = CASE
 			WHEN is_return = 1 THEN 'Return Submitted'
 			WHEN custom_qc_status = 'Partial QC Done' THEN 'Partial QC Done'
-			WHEN custom_qc_status = 'QC Completed' THEN 'QC Completed'
+			WHEN custom_qc_status IN (
+				'QC Completed', 'QC Completed - Fully Accepted',
+				'QC Completed - Partially Rejected'
+			) THEN CASE WHEN EXISTS (
+				SELECT 1 FROM `tabIncoming QC Allocation` qca
+				INNER JOIN `tabIncoming Quality Inspection` iqc ON iqc.name = qca.parent
+				WHERE qca.purchase_receipt = `tabPurchase Receipt`.name
+					AND iqc.docstatus = 1 AND qca.rejected_qty > 0
+			) THEN 'QC Completed - Partially Rejected'
+			ELSE 'QC Completed - Fully Accepted' END
 			ELSE 'Approved'
 		END,
-		custom_qc_status = CASE WHEN is_return = 1 THEN '' ELSE custom_qc_status END
+		custom_qc_status = CASE
+			WHEN is_return = 1 THEN ''
+			WHEN custom_qc_status IN (
+				'QC Completed', 'QC Completed - Fully Accepted',
+				'QC Completed - Partially Rejected'
+			) THEN CASE WHEN EXISTS (
+				SELECT 1 FROM `tabIncoming QC Allocation` qca
+				INNER JOIN `tabIncoming Quality Inspection` iqc ON iqc.name = qca.parent
+				WHERE qca.purchase_receipt = `tabPurchase Receipt`.name
+					AND iqc.docstatus = 1 AND qca.rejected_qty > 0
+			) THEN 'QC Completed - Partially Rejected'
+			ELSE 'QC Completed - Fully Accepted' END
+			ELSE custom_qc_status
+		END
 		WHERE docstatus = 1
 		"""
 	)
@@ -77,7 +104,8 @@ def _create_workflow_masters():
 		("Draft", "Primary"),
 		("Approved", "Warning"),
 		("Partial QC Done", "Warning"),
-		("QC Completed", "Success"),
+		("QC Completed - Fully Accepted", "Success"),
+		("QC Completed - Partially Rejected", "Danger"),
 		("Return Submitted", "Success"),
 	):
 		if not frappe.db.exists("Workflow State", state):

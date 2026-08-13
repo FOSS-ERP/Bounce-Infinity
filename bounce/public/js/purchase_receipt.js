@@ -17,9 +17,9 @@ frappe.ui.form.on("Purchase Receipt", {
 							<a href="/app/incoming-quality-inspection/${encodeURIComponent(inspection.name)}">
 								${frappe.utils.escape_html(inspection.name)}
 							</a>
-							<span class="text-muted ml-2">${frappe.utils.escape_html(
-								inspection.item_code || ""
-							)} · ${__(inspection.status)}</span>
+							<span class="text-muted ml-2">${frappe.utils.escape_html(inspection.item_code || "")} · ${__(
+							inspection.status
+						)}</span>
 						</div>`
 					)
 					.join("");
