@@ -13,6 +13,15 @@ The server validates every allocation against its exact `Purchase Receipt Item`,
 quantities from submitted inspections, and locks the source row while submitting to prevent concurrent
 over-allocation.
 
+Before submitting the first QC allocation, open **Bounce QC Settings** and select the accepted-material
+and rejected-material destination warehouses. The submitting QC user must have permission to create and
+submit Material Transfer Stock Entries. Accepted and rejected transfers are linked back to the Quality
+Inspection and are cancelled automatically if the inspection is cancelled.
+
+Submitted Purchase Receipts carry an automatic QC Status: **QC Pending**, **Partial QC Done**, or
+**QC Completed**. A Purchase Receipt Item stops appearing in the QC picker only when its full received
+quantity has been inspected. Rejection Reason is mandatory whenever rejected quantity is greater than zero.
+
 Installation
 
 You can install this app using the [bench](https://github.com/frappe/bench) CLI:
