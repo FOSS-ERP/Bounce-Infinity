@@ -346,23 +346,25 @@ def create_qc_purchase_returns(inspection: str):
 
 
 def _get_returned_rejected_qty(allocation, exclude_purchase_return=None):
-	conditions = ""
-	values = [allocation]
 	if exclude_purchase_return:
-		conditions = " AND pr.name != %s"
-		values.append(exclude_purchase_return)
-	return flt(
-		frappe.db.sql(
-			f"""
+		query = """
 			SELECT COALESCE(SUM(ABS(pri.qty)), 0)
 			FROM `tabPurchase Receipt Item` pri
 			INNER JOIN `tabPurchase Receipt` pr ON pr.name = pri.parent
 			WHERE pri.custom_incoming_qc_allocation = %s
-				AND pr.is_return = 1 AND pr.docstatus = 1{conditions}
-			""",
-			values,
-		)[0][0]
-	)
+				AND pr.is_return = 1 AND pr.docstatus = 1 AND pr.name != %s
+		"""
+		values = (allocation, exclude_purchase_return)
+	else:
+		query = """
+			SELECT COALESCE(SUM(ABS(pri.qty)), 0)
+			FROM `tabPurchase Receipt Item` pri
+			INNER JOIN `tabPurchase Receipt` pr ON pr.name = pri.parent
+			WHERE pri.custom_incoming_qc_allocation = %s
+				AND pr.is_return = 1 AND pr.docstatus = 1
+		"""
+		values = (allocation,)
+	return flt(frappe.db.sql(query, values)[0][0])
 
 
 def _get_purchase_receipt_item(row_name, lock_row=False):
