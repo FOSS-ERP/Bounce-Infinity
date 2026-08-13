@@ -49,14 +49,10 @@ Pre-commit is configured to use the following tools for checking and formatting 
 
 This app can use GitHub Actions for CI. The following workflows are configured:
 
-- CI: Installs this app and runs unit tests on every push to `develop` branch.
+- CI: Installs ERPNext and this app, then runs server tests for pull requests and pushes to `version-16`.
 - Linters: Runs [Frappe Semgrep Rules](https://github.com/frappe/semgrep-rules) and [pip-audit](https://pypi.org/project/pip-audit/) on every pull request.
 
 
 ### License
 
 mit
-=======
-# Bounce-Infinity
-Custom ERPNext app for Bounce
->>>>>>> 14d51b795da33602cbc31f90a5d909fee7013716
