@@ -1,14 +1,14 @@
 from types import SimpleNamespace
 from unittest.mock import patch
 
-from frappe.tests import IntegrationTestCase
+from frappe.tests import UnitTestCase
 
 from bounce.bounce_infinity.doctype.incoming_quality_inspection.incoming_quality_inspection import (
 	_get_pending_qty,
 )
 
 
-class TestIncomingQualityInspection(IntegrationTestCase):
+class TestIncomingQualityInspection(UnitTestCase):
 	@patch(
 		"bounce.bounce_infinity.doctype.incoming_quality_inspection.incoming_quality_inspection._get_inspected_qty"
 	)
