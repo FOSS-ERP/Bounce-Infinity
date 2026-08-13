@@ -184,22 +184,25 @@ def get_pending_qc_rows(
 		SELECT pri.name AS purchase_receipt_item, pri.parent AS purchase_receipt,
 			pri.item_code, pri.warehouse AS source_warehouse,
 			COALESCE(NULLIF(pri.received_qty, 0), pri.qty, 0) AS received_qty,
-			pr.posting_date, pr.supplier, pr.company
+			pr.posting_date, pr.supplier, pr.company,
+			CASE WHEN accepted_warehouse.name IS NOT NULL
+				AND accepted_warehouse.disabled = 0 AND accepted_warehouse.is_group = 0
+				AND accepted_warehouse.custom_is_qc_accepted_warehouse = 1
+				AND accepted_warehouse.company = pr.company
+				AND rejected_warehouse.name IS NOT NULL
+				AND rejected_warehouse.disabled = 0 AND rejected_warehouse.is_group = 0
+				AND rejected_warehouse.custom_is_qc_rejected_warehouse = 1
+				AND rejected_warehouse.company = pr.company
+			THEN 1 ELSE 0 END AS route_configured
 		FROM `tabPurchase Receipt Item` pri
 		INNER JOIN `tabPurchase Receipt` pr ON pr.name = pri.parent
 		INNER JOIN `tabWarehouse` warehouse ON warehouse.name = pri.warehouse
-		INNER JOIN `tabWarehouse` accepted_warehouse
+		LEFT JOIN `tabWarehouse` accepted_warehouse
 			ON accepted_warehouse.name = warehouse.custom_qc_accepted_warehouse
-		INNER JOIN `tabWarehouse` rejected_warehouse
+		LEFT JOIN `tabWarehouse` rejected_warehouse
 			ON rejected_warehouse.name = warehouse.custom_qc_rejected_warehouse
 		WHERE pr.docstatus = 1 AND pr.is_return = 0
 			AND warehouse.disabled = 0 AND warehouse.is_group = 0
-			AND accepted_warehouse.disabled = 0 AND accepted_warehouse.is_group = 0
-			AND accepted_warehouse.custom_is_qc_accepted_warehouse = 1
-			AND accepted_warehouse.company = pr.company
-			AND rejected_warehouse.disabled = 0 AND rejected_warehouse.is_group = 0
-			AND rejected_warehouse.custom_is_qc_rejected_warehouse = 1
-			AND rejected_warehouse.company = pr.company
 			AND (%s IS NULL OR pri.item_code = %s)
 			AND (%s IS NULL OR pr.name = %s)
 			AND (%s IS NULL OR pr.supplier = %s)

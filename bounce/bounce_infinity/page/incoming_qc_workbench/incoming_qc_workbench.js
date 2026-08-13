@@ -7,27 +7,43 @@ frappe.pages["incoming-qc-workbench"].on_page_load = function (wrapper) {
 	const state = { rows: [] };
 
 	const filters = {
-		item_code: page.add_field({ label: __("Item"), fieldtype: "Link", options: "Item" }),
+		item_code: page.add_field({
+			fieldname: "item_code",
+			label: __("Item"),
+			fieldtype: "Link",
+			options: "Item",
+			change: load_rows,
+		}),
 		purchase_receipt: page.add_field({
+			fieldname: "purchase_receipt",
 			label: __("Purchase Receipt"),
 			fieldtype: "Link",
 			options: "Purchase Receipt",
+			change: load_rows,
 		}),
 		supplier: page.add_field({
+			fieldname: "supplier",
 			label: __("Supplier"),
 			fieldtype: "Link",
 			options: "Supplier",
+			change: load_rows,
 		}),
-		from_date: page.add_field({ label: __("Received From"), fieldtype: "Date" }),
-		to_date: page.add_field({ label: __("Received To"), fieldtype: "Date" }),
+		from_date: page.add_field({
+			fieldname: "from_date",
+			label: __("Received From"),
+			fieldtype: "Date",
+			change: load_rows,
+		}),
+		to_date: page.add_field({
+			fieldname: "to_date",
+			label: __("Received To"),
+			fieldtype: "Date",
+			change: load_rows,
+		}),
 	};
 
 	page.set_primary_action(__("Create Incoming QC"), () => create_incoming_qc(state.rows));
 	page.add_inner_button(__("Refresh"), () => load_rows());
-	Object.values(filters).forEach((field) => {
-		field.$input.on("change", () => load_rows());
-	});
-
 	const $content = $('<div class="incoming-qc-workbench mt-4"></div>').appendTo(page.main);
 
 	async function load_rows() {
@@ -68,6 +84,11 @@ function render_rows($content, rows) {
 				<td class="text-right">${format_number(row.inspected_qty)}</td>
 				<td class="text-right">${format_number(row.pending_qty)}</td>
 				<td>${__(row.qc_status)}</td>
+				<td>${
+					row.route_configured
+						? `<span class="indicator-pill green">${__("Ready")}</span>`
+						: `<span class="indicator-pill orange">${__("Configure Warehouse")}</span>`
+				}</td>
 			</tr>`
 		)
 		.join("");
@@ -76,8 +97,8 @@ function render_rows($content, rows) {
 		"Supplier"
 	)}</th><th>${__("Received On")}</th><th>${__("Quality Warehouse")}</th><th>${__(
 		"Received"
-	)}</th><th>${__("Inspected")}</th><th>${__("Pending")}</th><th>${__(
-		"QC Status"
+	)}</th><th>${__("Inspected")}</th><th>${__("Pending")}</th><th>${__("QC Status")}</th><th>${__(
+		"Routing"
 	)}</th></tr></thead>
 		<tbody>${body}</tbody></table></div></div>`);
 	$content.data("rows", rows);
@@ -97,6 +118,17 @@ function create_incoming_qc(rows) {
 	}
 	if (new Set(selected.map((row) => row.company)).size !== 1) {
 		frappe.msgprint(__("Selected rows must belong to the same Company."));
+		return;
+	}
+	const unconfigured = selected.filter((row) => !row.route_configured);
+	if (unconfigured.length) {
+		frappe.msgprint({
+			title: __("Warehouse Routing Required"),
+			indicator: "orange",
+			message: __("Configure accepted and rejected QC warehouses on: {0}", [
+				[...new Set(unconfigured.map((row) => row.source_warehouse))].join(", "),
+			]),
+		});
 		return;
 	}
 	frappe.new_doc(
