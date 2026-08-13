@@ -11,6 +11,7 @@ from bounce.bounce_infinity.doctype.incoming_quality_inspection.incoming_quality
 class TestIncomingQualityInspectionE2E(UnitTestCase):
 	def test_multiple_grns_workbench_qc_and_stock_transfers(self):
 		self._ensure_item_master_data()
+		self._ensure_stock_entry_type()
 		self.company = self._ensure_company()
 		self.company_abbr = frappe.db.get_value("Company", self.company, "abbr")
 		self.parent_warehouse = frappe.db.get_value(
@@ -242,6 +243,18 @@ class TestIncomingQualityInspectionE2E(UnitTestCase):
 				}
 			).insert()
 		return company
+
+	def _ensure_stock_entry_type(self):
+		if frappe.db.exists("Stock Entry Type", "Material Transfer"):
+			return
+		frappe.get_doc(
+			{
+				"doctype": "Stock Entry Type",
+				"name": "Material Transfer",
+				"purpose": "Material Transfer",
+				"is_standard": 1,
+			}
+		).insert()
 
 	def _make_warehouse(self, warehouse_name, properties):
 		name = f"{warehouse_name} - {self.company_abbr}"
