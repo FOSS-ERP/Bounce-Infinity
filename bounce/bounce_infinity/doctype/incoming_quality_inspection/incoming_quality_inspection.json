@@ -3,7 +3,7 @@
  "allow_rename": 0,
  "autoname": "naming_series:",
  "doctype": "DocType",
- "field_order": ["naming_series","company","inspection_date","inspected_by","item_code","status","allocations_section","allocations","totals_section","total_pending_qty","total_accepted_qty","total_rejected_qty","total_remaining_qty","rejection_reason","remarks","transfers_section","accepted_stock_entry","rejected_stock_entry","amended_from"],
+ "field_order": ["naming_series","company","inspection_date","inspected_by","item_code","status","accepted_warehouse","rejected_warehouse","allocations_section","allocations","totals_section","total_pending_qty","total_accepted_qty","total_rejected_qty","total_remaining_qty","rejection_reason","remarks","transfers_section","accepted_stock_entry","rejected_stock_entry","amended_from"],
  "fields": [
   {"default":"IQC-.YYYY.-.#####","fieldname":"naming_series","fieldtype":"Select","label":"Series","options":"IQC-.YYYY.-.#####","reqd":1},
   {"fieldname":"company","fieldtype":"Link","label":"Company","options":"Company","reqd":1},
@@ -11,6 +11,8 @@
   {"default":"__user","fieldname":"inspected_by","fieldtype":"Link","label":"Inspected By","options":"User","reqd":1},
   {"fieldname":"item_code","fieldtype":"Link","in_standard_filter":1,"label":"Item","options":"Item","read_only":1,"reqd":1},
   {"fieldname":"status","fieldtype":"Select","in_list_view":1,"label":"Status","options":"Draft\nSubmitted\nCancelled","read_only":1},
+  {"fieldname":"accepted_warehouse","fieldtype":"Link","label":"Accepted Warehouse","options":"Warehouse","reqd":1},
+  {"fieldname":"rejected_warehouse","fieldtype":"Link","label":"Rejected Warehouse","options":"Warehouse","reqd":1},
   {"fieldname":"allocations_section","fieldtype":"Section Break","label":"Selected Purchase Receipts"},
   {"fieldname":"allocations","fieldtype":"Table","label":"GRN Allocations","options":"Incoming QC Allocation","reqd":1},
   {"fieldname":"totals_section","fieldtype":"Section Break","label":"QC Result"},
