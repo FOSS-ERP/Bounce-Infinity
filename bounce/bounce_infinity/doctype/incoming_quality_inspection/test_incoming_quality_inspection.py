@@ -5,6 +5,7 @@ from frappe.tests import UnitTestCase
 
 from bounce.bounce_infinity.doctype.incoming_quality_inspection.incoming_quality_inspection import (
 	_get_pending_qty,
+	_get_purchase_receipt_workflow_state,
 )
 
 
@@ -26,3 +27,8 @@ class TestIncomingQualityInspection(UnitTestCase):
 		row = SimpleNamespace(name="PRI-TEST", received_qty=100)
 
 		self.assertEqual(_get_pending_qty(row), 0)
+
+	def test_purchase_receipt_workflow_state_tracks_qc_progress(self):
+		self.assertEqual(_get_purchase_receipt_workflow_state("QC Pending"), "Approved")
+		self.assertEqual(_get_purchase_receipt_workflow_state("Partial QC Done"), "Partial QC Done")
+		self.assertEqual(_get_purchase_receipt_workflow_state("QC Completed"), "QC Completed")

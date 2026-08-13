@@ -6,3 +6,4 @@
 # Patches added in this section will be executed after doctypes are migrated
 bounce.patches.v0_0.backfill_purchase_receipt_qc_status
 bounce.patches.v0_0.remove_standard_quality_inspection_customizations
+bounce.patches.v0_0.configure_purchase_receipt_qc_workflow
