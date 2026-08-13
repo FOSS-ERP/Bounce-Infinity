@@ -234,6 +234,11 @@ def get_pending_qc_rows(
 	return result
 
 
+def clear_qc_status_for_return(doc, method=None):
+	if doc.is_return:
+		doc.custom_qc_status = ""
+
+
 def validate_warehouse_qc_routes(doc, method=None):
 	accepted_warehouse = doc.get("custom_qc_accepted_warehouse")
 	rejected_warehouse = doc.get("custom_qc_rejected_warehouse")
@@ -370,4 +375,12 @@ def _update_purchase_receipt_qc_statuses(allocations):
 			status = "Partial QC Done"
 		else:
 			status = "QC Completed"
-		frappe.db.set_value("Purchase Receipt", purchase_receipt, "custom_qc_status", status)
+		frappe.db.set_value(
+			"Purchase Receipt",
+			purchase_receipt,
+			{"custom_qc_status": status, "workflow_state": _get_purchase_receipt_workflow_state(status)},
+		)
+
+
+def _get_purchase_receipt_workflow_state(qc_status):
+	return "Approved" if qc_status == "QC Pending" else qc_status
