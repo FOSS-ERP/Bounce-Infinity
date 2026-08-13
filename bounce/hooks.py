@@ -7,6 +7,8 @@ app_license = "mit"
 
 required_apps = ["erpnext"]
 
+after_install = "bounce.install.after_install"
+
 doc_events = {
 	"Purchase Receipt": {
 		"validate": "bounce.bounce_infinity.doctype.incoming_quality_inspection.incoming_quality_inspection.clear_qc_status_for_return"
