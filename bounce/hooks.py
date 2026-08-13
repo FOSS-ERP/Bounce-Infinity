@@ -5,6 +5,26 @@ app_description = "Bounce-Infinity"
 app_email = "pavithra@fosserp.com"
 app_license = "mit"
 
+required_apps = ["erpnext"]
+
+doctype_js = {
+	"Quality Inspection": "public/js/quality_inspection.js",
+}
+
+doc_events = {
+	"Quality Inspection": {
+		"validate": "bounce.quality_control.quality_inspection.validate_qc_allocations",
+		"before_submit": "bounce.quality_control.quality_inspection.validate_qc_allocations_for_submit",
+	}
+}
+
+fixtures = [
+	{
+		"dt": "Custom Field",
+		"filters": [["name", "in", ["Quality Inspection-custom_qc_item", "Quality Inspection-custom_qc_receipts"]]],
+	},
+]
+
 # Apps
 # ------------------
 
