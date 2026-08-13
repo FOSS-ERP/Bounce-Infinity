@@ -85,7 +85,7 @@ def reverse_qc_result(doc, method=None):
 
 
 @frappe.whitelist()
-def get_pending_qc_receipts(item_code):
+def get_pending_qc_receipts(item_code: str):
 	if not item_code:
 		frappe.throw(_("Item is required."))
 	if not frappe.has_permission("Quality Inspection", "create"):
