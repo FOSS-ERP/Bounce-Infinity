@@ -51,6 +51,12 @@ def execute():
 	)
 	workflow.save(ignore_permissions=True)
 
+	if not (
+		frappe.db.has_column("Purchase Receipt", "workflow_state")
+		and frappe.db.has_column("Purchase Receipt", "custom_qc_status")
+	):
+		return
+
 	frappe.db.sql(
 		"""
 		UPDATE `tabPurchase Receipt`
