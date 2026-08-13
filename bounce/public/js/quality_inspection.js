@@ -52,7 +52,9 @@ async function get_grn_for_qc(frm) {
 		frm.refresh_field("custom_qc_receipts");
 
 		if (!rows.length) {
-			frappe.msgprint(__("No Purchase Receipt is pending QC for {0}.", [frm.doc.custom_qc_item]));
+			frappe.msgprint(
+				__("No Purchase Receipt is pending QC for {0}.", [frm.doc.custom_qc_item])
+			);
 		} else {
 			frappe.show_alert({
 				message: __("{0} Purchase Receipt row(s) pending QC found", [rows.length]),
@@ -71,7 +73,11 @@ function calculate_remaining_qty(frm, cdt, cdn) {
 		frappe.model.set_value(cdt, cdn, "accepted_qty", 0);
 		frappe.model.set_value(cdt, cdn, "rejected_qty", 0);
 		frappe.model.set_value(cdt, cdn, "remaining_qty", flt(row.pending_qty));
-		frappe.msgprint(__("Accepted + Rejected quantity cannot exceed Pending QC Qty ({0}).", [row.pending_qty]));
+		frappe.msgprint(
+			__("Accepted + Rejected quantity cannot exceed Pending QC Qty ({0}).", [
+				row.pending_qty,
+			])
+		);
 		return;
 	}
 	frappe.model.set_value(cdt, cdn, "remaining_qty", flt(row.pending_qty) - inspected_qty);
