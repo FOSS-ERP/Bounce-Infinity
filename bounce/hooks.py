@@ -15,6 +15,8 @@ doc_events = {
 	"Quality Inspection": {
 		"validate": "bounce.quality_control.quality_inspection.validate_qc_allocations",
 		"before_submit": "bounce.quality_control.quality_inspection.validate_qc_allocations_for_submit",
+		"on_submit": "bounce.quality_control.quality_inspection.process_qc_result",
+		"on_cancel": "bounce.quality_control.quality_inspection.reverse_qc_result",
 	}
 }
 
@@ -22,7 +24,17 @@ fixtures = [
 	{
 		"dt": "Custom Field",
 		"filters": [
-			["name", "in", ["Quality Inspection-custom_qc_item", "Quality Inspection-custom_qc_receipts"]]
+			[
+				"name",
+				"in",
+				[
+					"Purchase Receipt-custom_qc_status",
+					"Quality Inspection-custom_accepted_stock_entry",
+					"Quality Inspection-custom_qc_item",
+					"Quality Inspection-custom_qc_receipts",
+					"Quality Inspection-custom_rejected_stock_entry",
+				],
+			]
 		],
 	},
 ]

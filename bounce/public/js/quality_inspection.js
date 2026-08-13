@@ -41,6 +41,8 @@ async function get_grn_for_qc(frm) {
 				purchase_receipt: source.purchase_receipt,
 				purchase_receipt_item: source.purchase_receipt_item,
 				item_code: source.item_code,
+				posting_date: source.posting_date,
+				source_warehouse: source.source_warehouse,
 				received_qty: flt(source.received_qty),
 				already_inspected_qty: flt(source.inspected_qty),
 				pending_qty: flt(source.pending_qty),
