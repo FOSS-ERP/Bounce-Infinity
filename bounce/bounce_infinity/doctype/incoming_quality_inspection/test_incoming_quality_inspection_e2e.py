@@ -5,6 +5,7 @@ from frappe.utils import getdate, today
 
 from bounce.bounce_infinity.doctype.incoming_quality_inspection.incoming_quality_inspection import (
 	get_pending_qc_rows,
+	get_purchase_receipt_inspections,
 )
 
 
@@ -116,6 +117,12 @@ class TestIncomingQualityInspectionE2E(UnitTestCase):
 				"Purchase Receipt", receipt.name, ["custom_qc_status", "workflow_state"]
 			)
 			self.assertEqual((status, workflow_state), ("QC Completed", "QC Completed"))
+
+		related_inspections = get_purchase_receipt_inspections(receipts[0].name)
+		self.assertEqual(
+			{inspection.name for inspection in related_inspections},
+			{partial_qc.name, final_qc.name},
+		)
 
 		self.assertEqual(
 			self._actual_qty(item_a.name, quality_warehouse), initial_qty[item_a.name, quality_warehouse]

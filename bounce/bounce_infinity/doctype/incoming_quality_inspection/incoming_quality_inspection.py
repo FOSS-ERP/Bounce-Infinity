@@ -235,6 +235,26 @@ def get_pending_qc_rows(
 	return result
 
 
+@frappe.whitelist()
+def get_purchase_receipt_inspections(purchase_receipt: str):
+	if not purchase_receipt or not frappe.has_permission("Purchase Receipt", "read", purchase_receipt):
+		frappe.throw(_("You are not permitted to read this Purchase Receipt."), frappe.PermissionError)
+	if not frappe.has_permission("Incoming Quality Inspection", "read"):
+		frappe.throw(_("You are not permitted to read Incoming Quality Inspections."), frappe.PermissionError)
+
+	return frappe.db.sql(
+		"""
+		SELECT DISTINCT iqc.name, iqc.inspection_date, iqc.item_code, iqc.status, iqc.docstatus
+		FROM `tabIncoming Quality Inspection` iqc
+		INNER JOIN `tabIncoming QC Allocation` allocation ON allocation.parent = iqc.name
+		WHERE allocation.purchase_receipt = %s AND iqc.docstatus < 2
+		ORDER BY iqc.inspection_date DESC, iqc.creation DESC
+		""",
+		(purchase_receipt,),
+		as_dict=True,
+	)
+
+
 def clear_qc_status_for_return(doc, method=None):
 	if doc.is_return:
 		doc.custom_qc_status = ""

@@ -119,6 +119,7 @@ function create_incoming_qc(rows) {
 		"Incoming Quality Inspection",
 		{ company: selected[0].company, item_code: selected[0].item_code },
 		(doc) => {
+			frappe.model.clear_table(doc, "allocations");
 			const total_pending = selected.reduce(
 				(total, source) => total + flt(source.pending_qty),
 				0
