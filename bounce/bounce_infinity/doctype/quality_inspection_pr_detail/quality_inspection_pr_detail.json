@@ -1,0 +1,37 @@
+{
+ "actions": [],
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "purchase_receipt",
+  "purchase_receipt_item",
+  "item_code",
+  "received_qty",
+  "already_inspected_qty",
+  "pending_qty",
+  "accepted_qty",
+  "rejected_qty",
+  "remaining_qty"
+ ],
+ "fields": [
+  {"fieldname": "purchase_receipt", "fieldtype": "Link", "in_list_view": 1, "label": "Purchase Receipt", "options": "Purchase Receipt", "read_only": 1, "reqd": 1},
+  {"fieldname": "purchase_receipt_item", "fieldtype": "Data", "hidden": 1, "label": "Purchase Receipt Item", "read_only": 1, "reqd": 1},
+  {"fieldname": "item_code", "fieldtype": "Link", "label": "Item", "options": "Item", "read_only": 1, "reqd": 1},
+  {"fieldname": "received_qty", "fieldtype": "Float", "in_list_view": 1, "label": "Received Qty", "read_only": 1},
+  {"fieldname": "already_inspected_qty", "fieldtype": "Float", "in_list_view": 1, "label": "Inspected Qty", "read_only": 1},
+  {"fieldname": "pending_qty", "fieldtype": "Float", "in_list_view": 1, "label": "Pending Qty", "read_only": 1},
+  {"fieldname": "accepted_qty", "fieldtype": "Float", "in_list_view": 1, "label": "Accepted Qty", "non_negative": 1},
+  {"fieldname": "rejected_qty", "fieldtype": "Float", "in_list_view": 1, "label": "Rejected Qty", "non_negative": 1},
+  {"fieldname": "remaining_qty", "fieldtype": "Float", "in_list_view": 1, "label": "Remaining Qty", "read_only": 1}
+ ],
+ "grid_page_length": 50,
+ "istable": 1,
+ "links": [],
+ "module": "Bounce Infinity",
+ "name": "Quality Inspection PR Detail",
+ "permissions": [],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

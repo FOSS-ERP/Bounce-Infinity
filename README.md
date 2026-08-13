@@ -2,6 +2,17 @@ Bounce-Infinity
 
 Custom ERPNext app for Bounce.
 
+## GRN QC allocation
+
+The app extends **Quality Inspection** with a row-level, partial QC allocation flow for submitted
+Purchase Receipts. Select **QC Item**, click **Get GRN for QC**, and enter accepted/rejected quantities
+against one or more pending Purchase Receipt rows. Only submitted Quality Inspections consume the
+pending quantity; cancelled and draft inspections do not.
+
+The server validates every allocation against its exact `Purchase Receipt Item`, recalculates pending
+quantities from submitted inspections, and locks the source row while submitting to prevent concurrent
+over-allocation.
+
 Installation
 
 You can install this app using the [bench](https://github.com/frappe/bench) CLI:
@@ -10,6 +21,13 @@ You can install this app using the [bench](https://github.com/frappe/bench) CLI:
 cd $PATH_TO_YOUR_BENCH
 bench get-app $URL_OF_THIS_REPO --branch version-16
 bench install-app bounce
+```
+
+For an existing installation, update the app and synchronize the DocType and custom fields:
+
+```bash
+bench --site your-site migrate
+bench build --app bounce
 ```
 
 ### Contributing

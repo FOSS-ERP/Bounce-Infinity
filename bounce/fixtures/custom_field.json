@@ -1,0 +1,22 @@
+[
+ {
+  "doctype": "Custom Field",
+  "name": "Quality Inspection-custom_qc_item",
+  "dt": "Quality Inspection",
+  "fieldname": "custom_qc_item",
+  "fieldtype": "Link",
+  "label": "QC Item",
+  "options": "Item",
+  "insert_after": "item_code"
+ },
+ {
+  "doctype": "Custom Field",
+  "name": "Quality Inspection-custom_qc_receipts",
+  "dt": "Quality Inspection",
+  "fieldname": "custom_qc_receipts",
+  "fieldtype": "Table",
+  "label": "GRN for QC",
+  "options": "Quality Inspection PR Detail",
+  "insert_after": "custom_qc_item"
+ }
+]
