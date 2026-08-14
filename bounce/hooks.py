@@ -9,15 +9,30 @@ required_apps = ["erpnext"]
 
 after_install = "bounce.install.after_install"
 
-doctype_js = {"Purchase Receipt": "public/js/purchase_receipt.js"}
+doctype_js = {
+	"Purchase Receipt": "public/js/purchase_receipt.js",
+	"Serial No": "public/js/serial_no.js",
+	"Warranty Claim": "public/js/warranty_claim.js",
+}
 
 doc_events = {
 	"Purchase Receipt": {
 		"validate": [
 			"bounce.bounce_infinity.doctype.incoming_quality_inspection.incoming_quality_inspection.clear_qc_status_for_return",
 			"bounce.bounce_infinity.doctype.incoming_quality_inspection.incoming_quality_inspection.validate_qc_purchase_return",
-		]
+		],
+		"on_submit": [
+			"bounce.supplier_warranty.populate_purchase_receipt_serials",
+			"bounce.supplier_warranty.sync_purchase_return",
+		],
+		"on_cancel": "bounce.supplier_warranty.sync_purchase_return",
 	},
+	"Purchase Invoice": {
+		"on_submit": "bounce.supplier_warranty.sync_debit_note",
+		"on_cancel": "bounce.supplier_warranty.sync_debit_note",
+	},
+	"Serial No": {"validate": "bounce.supplier_warranty.populate_serial_purchase_origin"},
+	"Warranty Claim": {"validate": "bounce.supplier_warranty.populate_warranty_claim"},
 }
 
 fixtures = [
@@ -42,6 +57,8 @@ fixtures = [
 			]
 		],
 	},
+	{"dt": "Report", "filters": [["name", "=", "Supplier Warranty Recovery"]]},
+	{"dt": "Role", "filters": [["name", "=", "Warranty Manager"]]},
 ]
 
 # Apps
