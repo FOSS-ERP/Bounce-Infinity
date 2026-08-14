@@ -9,7 +9,7 @@
   {"fieldname":"company","fieldtype":"Link","label":"Company","options":"Company","reqd":1},
   {"default":"Today","fieldname":"inspection_date","fieldtype":"Date","label":"Inspection Date","reqd":1},
   {"default":"__user","fieldname":"inspected_by","fieldtype":"Link","label":"Inspected By","options":"User","reqd":1},
-  {"fieldname":"item_code","fieldtype":"Link","in_standard_filter":1,"label":"Item","options":"Item","read_only":1,"reqd":1},
+  {"fieldname":"item_code","fieldtype":"Data","in_standard_filter":1,"label":"Item Selection","read_only":1,"reqd":1},
   {"fieldname":"status","fieldtype":"Select","in_list_view":1,"label":"Status","options":"Draft\nSubmitted\nCancelled","read_only":1},
   {"fieldname":"accepted_warehouse","fieldtype":"Link","label":"Accepted Warehouse","options":"Warehouse","reqd":1},
   {"fieldname":"rejected_warehouse","fieldtype":"Link","label":"Rejected Warehouse","options":"Warehouse","reqd":1},
