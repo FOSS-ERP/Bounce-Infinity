@@ -5,6 +5,7 @@ from frappe.utils import flt, getdate, today
 
 from bounce.bounce_infinity.doctype.incoming_quality_inspection.incoming_quality_inspection import (
 	create_qc_purchase_returns,
+	create_qc_purchase_returns_for_receipt,
 	get_pending_qc_rows,
 	get_purchase_receipt_inspections,
 )
@@ -123,7 +124,15 @@ class TestIncomingQualityInspectionE2E(UnitTestCase):
 				("QC Completed - Partially Rejected", "QC Completed - Partially Rejected"),
 			)
 
-		purchase_returns = create_qc_purchase_returns(partial_qc.name)
+		from erpnext.stock.doctype.purchase_receipt.purchase_receipt import make_purchase_return
+
+		standard_return = make_purchase_return(receipts[0].name)
+		with self.assertRaises(frappe.ValidationError):
+			standard_return.insert()
+
+		purchase_returns = []
+		for receipt in receipts[:2]:
+			purchase_returns.extend(create_qc_purchase_returns_for_receipt(receipt.name))
 		self.assertEqual(len(purchase_returns), 2)
 		for index, purchase_return_name in enumerate(purchase_returns):
 			purchase_return = frappe.get_doc("Purchase Receipt", purchase_return_name)
