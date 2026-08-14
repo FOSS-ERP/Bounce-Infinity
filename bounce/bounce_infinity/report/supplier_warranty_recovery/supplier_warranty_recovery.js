@@ -1,6 +1,11 @@
 frappe.query_reports["Supplier Warranty Recovery"] = {
 	filters: [
-		{ fieldname: "custom_supplier", label: __("Supplier"), fieldtype: "Link", options: "Supplier" },
+		{
+			fieldname: "custom_supplier",
+			label: __("Supplier"),
+			fieldtype: "Link",
+			options: "Supplier",
+		},
 		{ fieldname: "item_code", label: __("Item"), fieldtype: "Link", options: "Item" },
 		{
 			fieldname: "custom_supplier_claim_status",

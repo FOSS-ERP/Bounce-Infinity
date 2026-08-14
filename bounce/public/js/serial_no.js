@@ -3,7 +3,12 @@ frappe.ui.form.on("Serial No", {
 		if (!frm.doc.custom_original_purchase_receipt) return;
 		frm.add_custom_button(
 			__("Open Original Purchase Receipt"),
-			() => frappe.set_route("Form", "Purchase Receipt", frm.doc.custom_original_purchase_receipt),
+			() =>
+				frappe.set_route(
+					"Form",
+					"Purchase Receipt",
+					frm.doc.custom_original_purchase_receipt
+				),
 			__("Actions")
 		);
 		frm.add_custom_button(
@@ -20,7 +25,8 @@ frappe.ui.form.on("Serial No", {
 	custom_supplier_claim_multiplier(frm) {
 		frm.set_value(
 			"custom_supplier_claim_amount",
-			flt(frm.doc.custom_original_purchase_rate) * flt(frm.doc.custom_supplier_claim_multiplier)
+			flt(frm.doc.custom_original_purchase_rate) *
+				flt(frm.doc.custom_supplier_claim_multiplier)
 		);
 	},
 });

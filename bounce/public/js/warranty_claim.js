@@ -11,16 +11,28 @@ frappe.ui.form.on("Warranty Claim", {
 		]) {
 			await frm.set_value(field, serial[field]);
 		}
-		await frm.set_value("custom_supplier_claim_multiplier", serial.custom_supplier_claim_multiplier || 2);
+		await frm.set_value(
+			"custom_supplier_claim_multiplier",
+			serial.custom_supplier_claim_multiplier || 2
+		);
 		await frm.set_value(
 			"custom_supplier_claim_amount",
-			flt(serial.custom_original_purchase_rate) * flt(serial.custom_supplier_claim_multiplier || 2)
+			flt(serial.custom_original_purchase_rate) *
+				flt(serial.custom_supplier_claim_multiplier || 2)
 		);
 	},
 	refresh(frm) {
 		if (!frm.doc.serial_no || frm.is_new()) return;
-		frm.add_custom_button(__("Supplier Warranty Return"), () => create_from_claim(frm, "create_supplier_return", "Purchase Receipt"), __("Create"));
-		frm.add_custom_button(__("Warranty Debit Note"), () => create_from_claim(frm, "create_warranty_debit_note", "Purchase Invoice"), __("Create"));
+		frm.add_custom_button(
+			__("Supplier Warranty Return"),
+			() => create_from_claim(frm, "create_supplier_return", "Purchase Receipt"),
+			__("Create")
+		);
+		frm.add_custom_button(
+			__("Warranty Debit Note"),
+			() => create_from_claim(frm, "create_warranty_debit_note", "Purchase Invoice"),
+			__("Create")
+		);
 	},
 });
 

@@ -1,6 +1,7 @@
+from unittest.mock import patch
+
 import frappe
 from frappe.tests import UnitTestCase
-from unittest.mock import patch
 
 from bounce.supplier_warranty import _calculate_claim, populate_warranty_claim
 
