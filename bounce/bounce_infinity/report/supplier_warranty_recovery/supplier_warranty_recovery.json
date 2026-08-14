@@ -1,0 +1,11 @@
+{
+ "add_total_row": 1,
+ "doctype": "Report",
+ "is_standard": "Yes",
+ "module": "Bounce Infinity",
+ "name": "Supplier Warranty Recovery",
+ "ref_doctype": "Serial No",
+ "report_name": "Supplier Warranty Recovery",
+ "report_type": "Script Report",
+ "roles": [{"role": "Stock User"}, {"role": "Accounts User"}, {"role": "Support Team"}]
+}

@@ -264,6 +264,8 @@ def clear_qc_status_for_return(doc, method=None):
 def validate_qc_purchase_return(doc, method=None):
 	if not doc.is_return or not doc.return_against:
 		return
+	if doc.get("custom_supplier_warranty_serial"):
+		return
 	if not doc.custom_incoming_quality_inspection:
 		if _purchase_receipt_has_rejected_qc(doc.return_against):
 			frappe.throw(
