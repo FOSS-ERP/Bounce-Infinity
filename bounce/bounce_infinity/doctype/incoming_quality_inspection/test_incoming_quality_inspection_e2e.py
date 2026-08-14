@@ -104,7 +104,11 @@ class TestIncomingQualityInspectionE2E(UnitTestCase):
 		remaining_rows = [row for row in remaining_rows if row.purchase_receipt in created_names]
 		self.assertEqual([row.pending_qty for row in remaining_rows], [5, 20])
 
-		final_qc = self._make_qc(remaining_rows, ((5, 0), (20, 0)))
+		item_b_rows = [
+			row for row in get_pending_qc_rows(item_code=item_b.name) if row.purchase_receipt in created_names
+		]
+		final_qc = self._make_qc(remaining_rows + item_b_rows, ((5, 0), (20, 0), (40, 0)))
+		self.assertEqual(final_qc.item_code, "Multiple Items")
 		self.assertTrue(final_qc.accepted_stock_entry)
 		self.assertFalse(final_qc.rejected_stock_entry)
 		self.assertFalse(
@@ -155,10 +159,6 @@ class TestIncomingQualityInspectionE2E(UnitTestCase):
 		apply_workflow(frappe.get_doc("Purchase Receipt", remaining_returns[0]), "Submit Return")
 		self.assertFalse(create_qc_purchase_returns(partial_qc.name))
 
-		item_b_rows = [
-			row for row in get_pending_qc_rows(item_code=item_b.name) if row.purchase_receipt in created_names
-		]
-		self._make_qc(item_b_rows, ((40, 0),))
 		self.assertEqual(
 			frappe.db.get_value("Purchase Receipt", receipts[2].name, ["custom_qc_status", "workflow_state"]),
 			("QC Completed - Fully Accepted", "QC Completed - Fully Accepted"),

@@ -107,17 +107,19 @@ function create_incoming_qc(rows) {
 		frappe.msgprint(__("Select at least one pending Purchase Receipt row."));
 		return;
 	}
-	if (new Set(selected.map((row) => row.item_code)).size !== 1) {
-		frappe.msgprint(__("Select rows for one Item at a time."));
-		return;
-	}
 	if (new Set(selected.map((row) => row.company)).size !== 1) {
 		frappe.msgprint(__("Selected rows must belong to the same Company."));
 		return;
 	}
 	frappe.new_doc(
 		"Incoming Quality Inspection",
-		{ company: selected[0].company, item_code: selected[0].item_code },
+		{
+			company: selected[0].company,
+			item_code:
+				new Set(selected.map((row) => row.item_code)).size === 1
+					? selected[0].item_code
+					: __("Multiple Items"),
+		},
 		(doc) => {
 			frappe.model.clear_table(doc, "allocations");
 			const total_pending = selected.reduce(

@@ -99,12 +99,10 @@ class IncomingQualityInspection(Document):
 			totals["rejected"] += rejected_qty
 			totals["remaining"] += allocation.remaining_qty
 
-		if len(items) != 1:
-			frappe.throw(_("All selected Purchase Receipt rows must contain the same Item."))
 		if len(companies) != 1:
 			frappe.throw(_("All selected Purchase Receipts must belong to the same Company."))
 
-		self.item_code = items.pop()
+		self.item_code = items.pop() if len(items) == 1 else _("Multiple Items")
 		self.company = companies.pop()
 		self._validate_destination_warehouses()
 		self.total_pending_qty = totals["pending"]
