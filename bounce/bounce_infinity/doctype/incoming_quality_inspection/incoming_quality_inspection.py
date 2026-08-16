@@ -234,6 +234,53 @@ def get_pending_qc_rows(
 
 
 @frappe.whitelist()
+def download_pending_qc_rows(
+	item_code: str | None = None,
+	purchase_receipt: str | None = None,
+	supplier: str | None = None,
+	from_date: str | None = None,
+	to_date: str | None = None,
+):
+	from frappe.utils.xlsxutils import build_xlsx_response
+
+	rows = get_pending_qc_rows(item_code, purchase_receipt, supplier, from_date, to_date)
+	build_xlsx_response(_get_pending_qc_export_data(rows), _("Incoming QC Workbench"))
+
+
+def _get_pending_qc_export_data(rows: list) -> list:
+	data = [
+		[
+			_("Item"),
+			_("Purchase Receipt"),
+			_("Supplier"),
+			_("Received On"),
+			_("Quality Warehouse"),
+			_("Received Qty"),
+			_("Inspected Qty"),
+			_("Pending Qty"),
+			_("QC Status"),
+			_("Company"),
+		]
+	]
+	data.extend(
+		[
+			row.item_code,
+			row.purchase_receipt,
+			row.supplier,
+			row.posting_date,
+			row.source_warehouse,
+			flt(row.received_qty),
+			flt(row.inspected_qty),
+			flt(row.pending_qty),
+			_(row.qc_status),
+			row.company,
+		]
+		for row in rows
+	)
+	return data
+
+
+@frappe.whitelist()
 def get_purchase_receipt_inspections(purchase_receipt: str):
 	if not purchase_receipt or not frappe.has_permission("Purchase Receipt", "read", purchase_receipt):
 		frappe.throw(_("You are not permitted to read this Purchase Receipt."), frappe.PermissionError)
