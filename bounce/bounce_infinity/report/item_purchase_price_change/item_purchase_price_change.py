@@ -2,7 +2,7 @@ from collections import defaultdict
 
 import frappe
 from frappe import _
-from frappe.utils import flt
+from frappe.utils import flt, get_datetime, getdate
 
 
 def execute(filters=None):
@@ -73,18 +73,64 @@ def _get_buying_item_prices(filters):
 		"""
 		SELECT price.item_code, item.item_name, price.price_list_rate price,
 			price.uom, price.currency, price.supplier,
-			COALESCE(price.valid_from, DATE(price.creation)) effective_date,
+			price.creation price_created_on, price.modified,
 			price.creation, 'Buying Item Price' source_type,
 			'Item Price' source_doctype,
 			price.name source_document
 		FROM `tabItem Price` price
 		INNER JOIN `tabItem` item ON item.name = price.item_code
 		WHERE price.buying = 1 AND price.price_list_rate IS NOT NULL
-		ORDER BY effective_date DESC, price.creation DESC
+		ORDER BY price.modified DESC
 		""",
 		as_dict=True,
 	)
-	return [row for row in rows if not filters.item_code or row.item_code == filters.item_code]
+	rows = [row for row in rows if not filters.item_code or row.item_code == filters.item_code]
+	if not rows:
+		return []
+
+	versions = frappe.get_all(
+		"Version",
+		filters={
+			"ref_doctype": "Item Price",
+			"docname": ("in", [row.source_document for row in rows]),
+		},
+		fields=["docname", "creation", "data"],
+		order_by="creation asc",
+	)
+	return _build_item_price_events(rows, versions)
+
+
+def _build_item_price_events(rows: list, versions: list) -> list:
+	versions_by_document = defaultdict(list)
+	for version in versions:
+		data = frappe.parse_json(version.data) or {}
+		for change in data.get("changed", []):
+			if len(change) >= 3 and change[0] == "price_list_rate":
+				versions_by_document[version.docname].append(
+					frappe._dict(creation=version.creation, old_price=change[1], new_price=change[2])
+				)
+
+	events = []
+	for row in rows:
+		changes = versions_by_document[row.source_document]
+		initial_price = changes[0].old_price if changes else row.price
+		events.append(_make_item_price_event(row, initial_price, row.price_created_on))
+		for change in changes:
+			events.append(_make_item_price_event(row, change.new_price, change.creation))
+
+		if changes and flt(changes[-1].new_price) != flt(row.price):
+			# Version history can be pruned; keep the current master value visible.
+			events.append(_make_item_price_event(row, row.price, row.modified))
+
+	return events
+
+
+def _make_item_price_event(row: frappe._dict, price: float, changed_on) -> frappe._dict:
+	event = frappe._dict(row.copy())
+	event.price = flt(price)
+	event.effective_date = getdate(changed_on)
+	event.creation = get_datetime(changed_on)
+	return event
 
 
 def _columns():
