@@ -4,6 +4,7 @@ from unittest.mock import patch
 from frappe.tests import UnitTestCase
 
 from bounce.bounce_infinity.doctype.incoming_quality_inspection.incoming_quality_inspection import (
+	_get_pending_qc_export_data,
 	_get_pending_qty,
 	_get_purchase_receipt_workflow_state,
 	clear_qc_status_for_return,
@@ -11,6 +12,29 @@ from bounce.bounce_infinity.doctype.incoming_quality_inspection.incoming_quality
 
 
 class TestIncomingQualityInspection(UnitTestCase):
+	def test_pending_qc_export_contains_workbench_values(self):
+		rows = [
+			SimpleNamespace(
+				item_code="ITEM-1",
+				purchase_receipt="PR-1",
+				supplier="SUP-1",
+				posting_date="2026-08-16",
+				source_warehouse="Quality - CO",
+				received_qty=10,
+				inspected_qty=4,
+				pending_qty=6,
+				qc_status="Partial QC Done",
+				company="Test Company",
+			)
+		]
+
+		data = _get_pending_qc_export_data(rows)
+
+		self.assertEqual(data[1][0], "ITEM-1")
+		self.assertEqual(data[1][1], "PR-1")
+		self.assertEqual(data[1][7], 6)
+		self.assertEqual(data[1][8], "Partial QC Done")
+
 	@patch(
 		"bounce.bounce_infinity.doctype.incoming_quality_inspection.incoming_quality_inspection._get_inspected_qty"
 	)

@@ -44,6 +44,7 @@ frappe.pages["incoming-qc-workbench"].on_page_load = function (wrapper) {
 
 	page.set_primary_action(__("Create Incoming QC"), () => create_incoming_qc(state.rows));
 	page.add_inner_button(__("Refresh"), () => load_rows());
+	page.add_inner_button(__("Download Excel"), () => download_excel(filters));
 	const $content = $('<div class="incoming-qc-workbench mt-4"></div>').appendTo(page.main);
 
 	async function load_rows() {
@@ -61,6 +62,13 @@ frappe.pages["incoming-qc-workbench"].on_page_load = function (wrapper) {
 
 	load_rows();
 };
+
+function download_excel(filters) {
+	open_url_post(
+		"/api/method/bounce.bounce_infinity.doctype.incoming_quality_inspection.incoming_quality_inspection.download_pending_qc_rows",
+		Object.fromEntries(Object.entries(filters).map(([key, field]) => [key, field.get_value()]))
+	);
+}
 
 function render_rows($content, rows) {
 	if (!rows.length) {
