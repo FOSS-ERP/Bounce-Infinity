@@ -23,6 +23,9 @@ frappe.ui.form.on("Incoming Quality Inspection", {
 		}));
 	},
 	refresh(frm) {
+		if (frm.doc.docstatus === 1) {
+			frm.add_custom_button(__("Revise QC Result"), () => show_qc_revision_dialog(frm));
+		}
 		if (frm.doc.docstatus === 1 && flt(frm.doc.total_rejected_qty) > 0) {
 			frm.add_custom_button(
 				__("Create Purchase Return"),
@@ -47,6 +50,92 @@ frappe.ui.form.on("Incoming Quality Inspection", {
 		}
 	},
 });
+
+function show_qc_revision_dialog(frm) {
+	const dialog = new frappe.ui.Dialog({
+		title: __("Revise QC Result"),
+		fields: [
+			{
+				fieldname: "allocations",
+				fieldtype: "Table",
+				label: __("Revised Quantities"),
+				cannot_add_rows: true,
+				cannot_delete_rows: true,
+				in_place_edit: true,
+				data: (frm.doc.allocations || []).map((row) => ({
+					allocation: row.name,
+					item_code: row.item_code,
+					purchase_receipt: row.purchase_receipt,
+					accepted_qty: row.accepted_qty,
+					rejected_qty: row.rejected_qty,
+				})),
+				fields: [
+					{ fieldname: "allocation", fieldtype: "Data", hidden: 1 },
+					{
+						fieldname: "item_code",
+						fieldtype: "Link",
+						options: "Item",
+						label: __("Item"),
+						in_list_view: true,
+						read_only: true,
+						columns: 2,
+					},
+					{
+						fieldname: "purchase_receipt",
+						fieldtype: "Link",
+						options: "Purchase Receipt",
+						label: __("Purchase Receipt"),
+						in_list_view: true,
+						read_only: true,
+						columns: 2,
+					},
+					{
+						fieldname: "accepted_qty",
+						fieldtype: "Float",
+						label: __("Revised Accepted Qty"),
+						in_list_view: true,
+						columns: 2,
+					},
+					{
+						fieldname: "rejected_qty",
+						fieldtype: "Float",
+						label: __("Revised Rejected Qty"),
+						in_list_view: true,
+						columns: 2,
+					},
+				],
+			},
+			{
+				fieldname: "reason",
+				fieldtype: "Small Text",
+				label: __("Revision Reason"),
+				reqd: true,
+			},
+		],
+		primary_action_label: __("Revise and Transfer Stock"),
+		async primary_action(values) {
+			const response = await frappe.call({
+				method: "bounce.bounce_infinity.doctype.incoming_quality_inspection.incoming_quality_inspection.revise_qc_result",
+				args: {
+					inspection: frm.doc.name,
+					allocations: values.allocations,
+					reason: values.reason,
+				},
+				freeze: true,
+				freeze_message: __("Revising QC result and transferring stock..."),
+			});
+			dialog.hide();
+			await frm.reload_doc();
+			const entries = response.message?.stock_entries || [];
+			frappe.msgprint(
+				entries.length
+					? __("QC result revised. Corrective Stock Entries: {0}", [entries.join(", ")])
+					: __("QC result revised.")
+			);
+		},
+	});
+	dialog.show();
+}
 
 function calculate_totals(frm, cdt, cdn) {
 	const row = locals[cdt][cdn];

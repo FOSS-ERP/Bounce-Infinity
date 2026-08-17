@@ -1,17 +1,28 @@
 from types import SimpleNamespace
 from unittest.mock import patch
 
+import frappe
 from frappe.tests import UnitTestCase
 
 from bounce.bounce_infinity.doctype.incoming_quality_inspection.incoming_quality_inspection import (
 	_get_pending_qc_export_data,
 	_get_pending_qty,
 	_get_purchase_receipt_workflow_state,
+	_validate_revision_quantities,
 	clear_qc_status_for_return,
 )
 
 
 class TestIncomingQualityInspection(UnitTestCase):
+	def test_qc_revision_preserves_inspected_total(self):
+		allocation = SimpleNamespace(item_code="ITEM-1", accepted_qty=7, rejected_qty=3)
+
+		_validate_revision_quantities(allocation, 8, 2)
+		with self.assertRaises(frappe.ValidationError):
+			_validate_revision_quantities(allocation, 8, 1)
+		with self.assertRaises(frappe.ValidationError):
+			_validate_revision_quantities(allocation, 11, -1)
+
 	def test_pending_qc_export_contains_workbench_values(self):
 		rows = [
 			SimpleNamespace(
