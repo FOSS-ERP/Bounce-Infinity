@@ -115,6 +115,10 @@ class TestIncomingQualityInspectionE2E(UnitTestCase):
 		self.assertEqual(partial_qc.total_accepted_qty, 62)
 		self.assertEqual(partial_qc.total_rejected_qty, 13)
 		self.assertEqual(partial_qc.revision_count, 1)
+		self.assertEqual(
+			partial_qc.last_revision_accepted_stock_entry,
+			revision_result["stock_entries"][0],
+		)
 
 		for receipt in receipts[:2]:
 			status, workflow_state = frappe.db.get_value(
