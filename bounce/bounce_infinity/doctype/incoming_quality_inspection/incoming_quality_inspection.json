@@ -3,7 +3,7 @@
  "allow_rename": 0,
  "autoname": "naming_series:",
  "doctype": "DocType",
- "field_order": ["naming_series","company","inspection_date","inspected_by","item_code","status","accepted_warehouse","rejected_warehouse","allocations_section","allocations","totals_section","total_pending_qty","total_accepted_qty","total_rejected_qty","total_remaining_qty","rejection_reason","remarks","transfers_section","accepted_stock_entry","rejected_stock_entry","amended_from"],
+ "field_order": ["naming_series","company","inspection_date","inspected_by","item_code","status","accepted_warehouse","rejected_warehouse","allocations_section","allocations","totals_section","total_pending_qty","total_accepted_qty","total_rejected_qty","total_remaining_qty","rejection_reason","remarks","revision_section","revision_count","last_revised_on","last_revised_by","transfers_section","accepted_stock_entry","rejected_stock_entry","amended_from"],
  "fields": [
   {"default":"IQC-.YYYY.-.#####","fieldname":"naming_series","fieldtype":"Select","label":"Series","options":"IQC-.YYYY.-.#####","reqd":1},
   {"fieldname":"company","fieldtype":"Link","label":"Company","options":"Company","reqd":1},
@@ -22,6 +22,10 @@
   {"fieldname":"total_remaining_qty","fieldtype":"Float","label":"Total Remaining Qty","read_only":1},
   {"depends_on":"eval:doc.total_rejected_qty > 0","fieldname":"rejection_reason","fieldtype":"Small Text","label":"Rejection Reason","mandatory_depends_on":"eval:doc.total_rejected_qty > 0"},
   {"fieldname":"remarks","fieldtype":"Small Text","label":"Remarks"},
+  {"collapsible":1,"fieldname":"revision_section","fieldtype":"Section Break","label":"QC Revisions"},
+  {"allow_on_submit":1,"default":"0","fieldname":"revision_count","fieldtype":"Int","label":"Revision Count","read_only":1},
+  {"allow_on_submit":1,"fieldname":"last_revised_on","fieldtype":"Datetime","label":"Last Revised On","read_only":1},
+  {"allow_on_submit":1,"fieldname":"last_revised_by","fieldtype":"Link","label":"Last Revised By","options":"User","read_only":1},
   {"fieldname":"transfers_section","fieldtype":"Section Break","label":"Stock Transfers"},
   {"fieldname":"accepted_stock_entry","fieldtype":"Link","label":"Accepted Stock Entry","no_copy":1,"options":"Stock Entry","read_only":1},
   {"fieldname":"rejected_stock_entry","fieldtype":"Link","label":"Rejected Stock Entry","no_copy":1,"options":"Stock Entry","read_only":1},
@@ -38,5 +42,6 @@
  "search_fields":"item_code,company",
  "sort_field":"modified",
  "sort_order":"DESC",
+ "track_changes":1,
  "states":[]
 }

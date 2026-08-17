@@ -8,6 +8,7 @@ from bounce.bounce_infinity.doctype.incoming_quality_inspection.incoming_quality
 	create_qc_purchase_returns_for_receipt,
 	get_pending_qc_rows,
 	get_purchase_receipt_inspections,
+	revise_qc_result,
 )
 
 
@@ -93,6 +94,27 @@ class TestIncomingQualityInspectionE2E(UnitTestCase):
 		self.assertTrue(partial_qc.rejected_stock_entry)
 		self.assertEqual(frappe.db.get_value("Stock Entry", partial_qc.accepted_stock_entry, "docstatus"), 1)
 		self.assertEqual(frappe.db.get_value("Stock Entry", partial_qc.rejected_stock_entry, "docstatus"), 1)
+		partial_qc.reload()
+		first_allocation = partial_qc.allocations[0]
+		revision_result = revise_qc_result(
+			partial_qc.name,
+			[
+				{
+					"allocation": allocation.name,
+					"accepted_qty": flt(allocation.accepted_qty)
+					+ (2 if allocation.name == first_allocation.name else 0),
+					"rejected_qty": flt(allocation.rejected_qty)
+					- (2 if allocation.name == first_allocation.name else 0),
+				}
+				for allocation in partial_qc.allocations
+			],
+			"Retested two rejected units",
+		)
+		self.assertEqual(len(revision_result["stock_entries"]), 1)
+		partial_qc.reload()
+		self.assertEqual(partial_qc.total_accepted_qty, 62)
+		self.assertEqual(partial_qc.total_rejected_qty, 13)
+		self.assertEqual(partial_qc.revision_count, 1)
 
 		for receipt in receipts[:2]:
 			status, workflow_state = frappe.db.get_value(
@@ -158,6 +180,19 @@ class TestIncomingQualityInspectionE2E(UnitTestCase):
 		self.assertEqual(len(remaining_returns), 1)
 		apply_workflow(frappe.get_doc("Purchase Receipt", remaining_returns[0]), "Submit Return")
 		self.assertFalse(create_qc_purchase_returns(partial_qc.name))
+		with self.assertRaises(frappe.ValidationError):
+			revise_qc_result(
+				partial_qc.name,
+				[
+					{
+						"allocation": allocation.name,
+						"accepted_qty": flt(allocation.accepted_qty) - (1 if index == 0 else 0),
+						"rejected_qty": flt(allocation.rejected_qty) + (1 if index == 0 else 0),
+					}
+					for index, allocation in enumerate(partial_qc.allocations)
+				],
+				"Must be blocked after return",
+			)
 
 		self.assertEqual(
 			frappe.db.get_value("Purchase Receipt", receipts[2].name, ["custom_qc_status", "workflow_state"]),
@@ -175,7 +210,7 @@ class TestIncomingQualityInspectionE2E(UnitTestCase):
 		)
 		self.assertEqual(
 			self._actual_qty(item_a.name, accepted_warehouse),
-			initial_qty[item_a.name, accepted_warehouse] + 85,
+			initial_qty[item_a.name, accepted_warehouse] + 87,
 		)
 		self.assertEqual(
 			self._actual_qty(item_a.name, rejected_warehouse),

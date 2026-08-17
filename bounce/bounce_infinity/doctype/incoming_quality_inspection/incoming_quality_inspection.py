@@ -1,7 +1,7 @@
 import frappe
 from frappe import _
 from frappe.model.document import Document
-from frappe.utils import flt
+from frappe.utils import cint, flt, now_datetime
 
 
 class IncomingQualityInspection(Document):
@@ -231,6 +231,168 @@ def get_pending_qc_rows(
 			)
 			result.append(row)
 	return result
+
+
+@frappe.whitelist()
+def revise_qc_result(inspection: str, allocations: str | list, reason: str):
+	doc = frappe.get_doc("Incoming Quality Inspection", inspection)
+	doc.check_permission("write")
+	if doc.docstatus != 1:
+		frappe.throw(_("Only a submitted Incoming Quality Inspection can be revised."))
+	if not reason or not reason.strip():
+		frappe.throw(_("Revision Reason is required."))
+	if not frappe.has_permission("Stock Entry", "create") or not frappe.has_permission(
+		"Stock Entry", "submit"
+	):
+		frappe.throw(
+			_("You are not permitted to create and submit corrective Stock Entries."),
+			frappe.PermissionError,
+		)
+
+	revisions = frappe.parse_json(allocations) if isinstance(allocations, str) else allocations
+	revisions = revisions or []
+	allocation_by_name = {row.name: row for row in doc.allocations}
+	if {row.get("allocation") for row in revisions} != set(allocation_by_name):
+		frappe.throw(_("Submit revised quantities for every QC allocation row."))
+
+	moves_to_accepted = []
+	moves_to_rejected = []
+	changed_allocations = []
+	for revision in revisions:
+		allocation = allocation_by_name[revision.get("allocation")]
+		accepted_qty = flt(revision.get("accepted_qty"))
+		rejected_qty = flt(revision.get("rejected_qty"))
+		_validate_revision_quantities(allocation, accepted_qty, rejected_qty)
+
+		accepted_delta = accepted_qty - flt(allocation.accepted_qty)
+		rejected_delta = rejected_qty - flt(allocation.rejected_qty)
+		if not accepted_delta and not rejected_delta:
+			continue
+		changed_allocations.append(allocation)
+		if accepted_delta > 0:
+			moves_to_accepted.append((allocation, accepted_delta))
+		elif rejected_delta > 0:
+			moves_to_rejected.append((allocation, rejected_delta))
+		allocation.accepted_qty = accepted_qty
+		allocation.rejected_qty = rejected_qty
+
+	if not changed_allocations:
+		frappe.throw(_("Enter at least one revised accepted or rejected quantity."))
+	_assert_no_active_purchase_returns(changed_allocations)
+	_validate_revision_stock(moves_to_accepted, doc.rejected_warehouse)
+	_validate_revision_stock(moves_to_rejected, doc.accepted_warehouse)
+
+	stock_entries = []
+	accepted_entry = _create_revision_stock_entry(
+		doc, moves_to_accepted, doc.rejected_warehouse, doc.accepted_warehouse, "Accepted", reason
+	)
+	rejected_entry = _create_revision_stock_entry(
+		doc, moves_to_rejected, doc.accepted_warehouse, doc.rejected_warehouse, "Rejected", reason
+	)
+	stock_entries.extend(entry for entry in (accepted_entry, rejected_entry) if entry)
+
+	doc.total_accepted_qty = sum(flt(row.accepted_qty) for row in doc.allocations)
+	doc.total_rejected_qty = sum(flt(row.rejected_qty) for row in doc.allocations)
+	doc.revision_count = cint(doc.revision_count) + 1
+	doc.last_revised_on = now_datetime()
+	doc.last_revised_by = frappe.session.user
+	if doc.total_rejected_qty:
+		doc.rejection_reason = reason.strip()
+	doc.flags.ignore_validate_update_after_submit = True
+	doc.save()
+	doc.add_comment(
+		"Info",
+		_("QC result revised by {0}. Reason: {1}. Corrective Stock Entries: {2}").format(
+			frappe.session.user, reason.strip(), ", ".join(stock_entries) or _("None")
+		),
+	)
+	_update_purchase_receipt_qc_statuses(doc.allocations)
+	return {"stock_entries": stock_entries}
+
+
+def _validate_revision_quantities(allocation, accepted_qty: float, rejected_qty: float):
+	if accepted_qty < 0 or rejected_qty < 0:
+		frappe.throw(_("Accepted and rejected quantities cannot be negative."))
+	current_total = flt(allocation.accepted_qty) + flt(allocation.rejected_qty)
+	if abs(accepted_qty + rejected_qty - current_total) > 0.000001:
+		frappe.throw(
+			_("Item {0}: revised accepted plus rejected quantity must remain {1}.").format(
+				allocation.item_code, current_total
+			)
+		)
+
+
+def _assert_no_active_purchase_returns(allocations: list):
+	allocation_names = [row.name for row in allocations]
+	purchase_receipt = frappe.qb.DocType("Purchase Receipt")
+	purchase_receipt_item = frappe.qb.DocType("Purchase Receipt Item")
+	returns = (
+		frappe.qb.from_(purchase_receipt_item)
+		.join(purchase_receipt)
+		.on(purchase_receipt.name == purchase_receipt_item.parent)
+		.select(purchase_receipt.name, purchase_receipt.docstatus)
+		.distinct()
+		.where(
+			(purchase_receipt_item.custom_incoming_qc_allocation.isin(allocation_names))
+			& (purchase_receipt.is_return == 1)
+			& (purchase_receipt.docstatus < 2)
+		)
+	).run(as_dict=True)
+	if returns:
+		frappe.throw(
+			_("Cancel or delete these active QC Purchase Returns before revising QC: {0}").format(
+				", ".join(row.name for row in returns)
+			)
+		)
+
+
+def _validate_revision_stock(moves: list, source_warehouse: str):
+	required_by_item = {}
+	for allocation, qty in moves:
+		required_by_item[allocation.item_code] = required_by_item.get(allocation.item_code, 0) + qty
+	for item_code, required_qty in required_by_item.items():
+		available_qty = flt(
+			frappe.db.get_value("Bin", {"item_code": item_code, "warehouse": source_warehouse}, "actual_qty")
+		)
+		if required_qty > available_qty + 0.000001:
+			frappe.throw(
+				_("Cannot revise {0}: warehouse {1} has {2}, but {3} is required.").format(
+					item_code, source_warehouse, available_qty, required_qty
+				)
+			)
+
+
+def _create_revision_stock_entry(
+	doc, moves: list, source_warehouse: str, target_warehouse: str, result: str, reason: str
+):
+	if not moves:
+		return None
+	stock_entry = frappe.get_doc(
+		{
+			"doctype": "Stock Entry",
+			"stock_entry_type": "Material Transfer",
+			"purpose": "Material Transfer",
+			"company": doc.company,
+			"custom_incoming_quality_inspection": doc.name,
+			"custom_qc_result": result,
+			"remarks": _("QC result revision for {0}: {1}").format(doc.name, reason.strip()),
+			"items": [
+				{
+					"item_code": allocation.item_code,
+					"qty": qty,
+					"s_warehouse": source_warehouse,
+					"t_warehouse": target_warehouse,
+					"custom_purchase_receipt": allocation.purchase_receipt,
+					"custom_purchase_receipt_item": allocation.purchase_receipt_item,
+					"custom_incoming_qc_allocation": allocation.name,
+				}
+				for allocation, qty in moves
+			],
+		}
+	)
+	stock_entry.insert()
+	stock_entry.submit()
+	return stock_entry.name
 
 
 @frappe.whitelist()
