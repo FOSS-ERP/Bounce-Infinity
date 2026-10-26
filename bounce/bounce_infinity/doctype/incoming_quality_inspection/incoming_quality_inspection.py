@@ -290,6 +290,10 @@ def revise_qc_result(inspection: str, allocations: str | list, reason: str):
 		doc, moves_to_rejected, doc.accepted_warehouse, doc.rejected_warehouse, "Rejected", reason
 	)
 	stock_entries.extend(entry for entry in (accepted_entry, rejected_entry) if entry)
+	if accepted_entry:
+		doc.last_revision_accepted_stock_entry = accepted_entry
+	if rejected_entry:
+		doc.last_revision_rejected_stock_entry = rejected_entry
 
 	doc.total_accepted_qty = sum(flt(row.accepted_qty) for row in doc.allocations)
 	doc.total_rejected_qty = sum(flt(row.rejected_qty) for row in doc.allocations)
